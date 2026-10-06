@@ -324,10 +324,9 @@ void onTickTimer(void* arg) {
 void startTransmission(uint32_t durationSec) {
     if (isTransmitting) return;
 
-    // Boost CPU to full speed (160 MHz) and disable Wi-Fi sleep for clean, jitter-free broadcast
-    setCpuFrequencyMhz(160);
+    // Maintain constant 80 MHz clock (APB bus locked at 80 MHz) and pause Wi-Fi sleep for clean 3.3V rail
     WiFi.setSleep(false);
-    Serial.println("[Power] Boosted CPU to 160 MHz (full speed) for atomic broadcast.");
+    Serial.println("[Power] Broadcast active at 80 MHz (Wi-Fi sleep paused for rail stability).");
 
     uint32_t carrierFreq = timeproto_get_carrier_freq(activeStation);
     Serial.printf("[Transmitter] Starting %s carrier at %u Hz on GPIO %d\n",
@@ -370,10 +369,9 @@ void stopTransmission() {
     digitalWrite(ANTENNA_PIN, LOW);
     Serial.println("[Transmitter] Transmission stopped. Carrier OFF.");
 
-    // Return CPU and Wi-Fi to ultra-low-power standby
-    setCpuFrequencyMhz(80);
+    // Re-engage Wi-Fi Modem-Sleep for low-power standby (CPU stays at 80 MHz)
     WiFi.setSleep(true);
-    Serial.println("[Power] Returned to 80 MHz CPU & Wi-Fi Modem-Sleep (low-power standby).");
+    Serial.println("[Power] 80 MHz CPU & Wi-Fi Modem-Sleep active (standby).");
 }
 
 // ============================================================================

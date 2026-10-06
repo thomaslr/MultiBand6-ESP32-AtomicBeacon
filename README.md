@@ -212,9 +212,10 @@ Here is the top-down terminal row mapping for a standard breadboard:
 * **Direct C Code Portability:** Reuses proven transmission bitstream engines directly from [`kangtastic/timestation`](https://github.com/kangtastic/timestation) (`timesignal.c`, `waveform.h`, `datetime.h`).
 * **Hardware Fractional Divider:** Native access to the ESP32-C3 `LEDC` peripheral via the 80 MHz APB clock:
   $$\text{LEDC Frequency Error} < 0.0005\%$$
-* **Dynamic Clock Scaling & Power Management:**
-  * **24/7 Online Standby (80 MHz):** Throttles CPU to 80 MHz and engages 802.11 Modem-Sleep (`WiFi.setSleep(true)`). The web server and mDNS responder (`http://timestation.local`) stay accessible 24/7 while cutting average current draw to ~15–20 mA.
-  * **Broadcast Boost (160 MHz):** Ramps the CPU clock to full speed (160 MHz) and disables Wi-Fi sleep during active transmissions to eliminate timer jitter and ensure clean, stable carrier output.
+* **Constant 80 MHz Low-Power Clock Architecture:**
+  * **Zero Clock Overhead (Constant 80 MHz):** The CPU remains at a cool, efficient 80 MHz at all times. Because the ESP32-C3 APB peripheral bus clock is locked at 80 MHz, the hardware LEDC timer produces the exact same fractional-accuracy PWM carrier at 80 MHz as it would at 160 MHz.
+  * **24/7 Web Standby:** Engages 802.11 Modem-Sleep (`WiFi.setSleep(true)`), keeping the web server and mDNS responder (`http://timestation.local`) accessible 24/7 at ~15–20 mA average current.
+  * **Clean Broadcast Rail:** Automatically pauses Wi-Fi sleep (`WiFi.setSleep(false)`) during active broadcasts to keep the 3.3V power rail flat and ripple-free for the LC antenna.
   * **Optional Deep Sleep:** Supports true battery-powered deep sleep with RTC timer wakeup (`esp_deep_sleep_start()`) drawing $\sim 5\,\mu\text{A}$.
 * **Zero Jitter:** Deterministic interrupt-driven or hardware-timer pulse modulation without Python Garbage Collection (GC) pauses.
 
@@ -239,7 +240,7 @@ Here is the top-down terminal row mapping for a standard breadboard:
         ▼
  ┌─────────────────────────────────────────────────────────────┐
  │            24/7 Ultra-Low-Power Standby Mode                │
- │  • CPU throttled to 80 MHz                                  │
+ │  • CPU running at constant 80 MHz (cool & efficient)        │
  │  • 802.11 Modem-Sleep enabled (~15-20 mA)                   │
  │  • Web Dashboard & mDNS (timestation.local) live 24/7       │
  │  • FreeRTOS yields idle time slices                         │
@@ -250,14 +251,14 @@ Here is the top-down terminal row mapping for a standard breadboard:
           ▼ (Scheduled Time OR "Broadcast Now")       ▼ (User Opens Browser)
  ┌──────────────────────────────────────────┐  ┌───────────────────────────┐
  │        Atomic Broadcast Active           │  │    Serve HTTP Web UI      │
- │  • CPU boosted to 160 MHz (Full Speed)   │  │  • Real-time NTP clock    │
- │  • Wi-Fi Sleep disabled (clean rail)     │  │  • Station selector       │
+ │  • CPU at 80 MHz (80 MHz APB Bus PWM)    │  │  • Real-time NTP clock    │
+ │  • Wi-Fi Sleep paused (clean 3.3V rail)  │  │  • Station selector       │
  │  • 50ms tick ISR modulates carrier       │  │  • Offset & duration cfg  │
  │  • Duration: 5 - 30 minutes              │  └───────────────────────────┘
  └────────────────────┬─────────────────────┘
                       │
                       ▼ (Broadcast Finishes)
- [ Return to 80 MHz CPU & Modem-Sleep Standby ]
+ [ Re-enable Wi-Fi Modem-Sleep Standby ]
 ```
 
 ---
