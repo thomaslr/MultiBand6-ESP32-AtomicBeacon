@@ -2,6 +2,12 @@
 
 An open-hardware, low-power near-field radio transmitter built on the **ESP32-C3-Mini** to simulate LF time signal broadcasts (**BPC, WWVB, MSF, DCF77, JJY40, JJY60**) for synchronizing radio-controlled ("atomic") clocks and wristwatches over a localized range (approx. 0.5 m to 1.0 m).
 
+Why?? - I have a collection of multiband6 casios but I live in Singapore were there is no signal from any of the time towers. This device solves that problem by broadcasting the signals locally from my a small device next to my bed, about 0.5m from my watches.
+
+It's still under testing.
+
+
+
 ---
 
 ## 1. Bill of Materials (BOM) & Components

@@ -55,16 +55,40 @@
 #define PWM_CHANNEL      0
 #define PWM_RESOLUTION   8
 
+#ifndef DEFAULT_STATION
+  #define DEFAULT_STATION 0 // 0 = BPC (China 68.5 kHz)
+#endif
+
+#ifndef DEFAULT_OFFSET_HOURS
+  #define DEFAULT_OFFSET_HOURS 0
+#endif
+
+#ifndef DEFAULT_SCHEDULE_ENABLED
+  #define DEFAULT_SCHEDULE_ENABLED 1
+#endif
+
+#ifndef DEFAULT_BROADCAST_HOUR
+  #define DEFAULT_BROADCAST_HOUR 2 // 02:00 AM
+#endif
+
+#ifndef DEFAULT_BROADCAST_MINUTE
+  #define DEFAULT_BROADCAST_MINUTE 0
+#endif
+
+#ifndef DEFAULT_BROADCAST_DURATION
+  #define DEFAULT_BROADCAST_DURATION 25 // 25 minutes
+#endif
+
 // --- Preferences / NVS Storage ---
 Preferences prefs;
 
 // --- Config State ---
-time_station_t activeStation = STATION_BPC;
-int32_t userOffsetHours = 0;
-bool scheduleEnabled = true;
-int broadcastHour = 2;       // 02:00 AM
-int broadcastMinute = 0;
-int broadcastDurationMin = 20;
+time_station_t activeStation = (time_station_t)DEFAULT_STATION;
+int32_t userOffsetHours = DEFAULT_OFFSET_HOURS;
+bool scheduleEnabled = (DEFAULT_SCHEDULE_ENABLED != 0);
+int broadcastHour = DEFAULT_BROADCAST_HOUR;
+int broadcastMinute = DEFAULT_BROADCAST_MINUTE;
+int broadcastDurationMin = DEFAULT_BROADCAST_DURATION;
 String wifiSsid = "";
 String wifiPassword = "";
 String ntpServer = "pool.ntp.org";
@@ -114,12 +138,12 @@ void setup() {
 
     // 2. Load Settings from Flash (NVS)
     prefs.begin("timestation", false);
-    activeStation = (time_station_t)prefs.getInt("station", (int)STATION_BPC);
-    userOffsetHours = prefs.getInt("offsetH", 0);
-    scheduleEnabled = prefs.getBool("schedEn", true);
-    broadcastHour = prefs.getInt("bcHour", 2);
-    broadcastMinute = prefs.getInt("bcMin", 0);
-    broadcastDurationMin = prefs.getInt("bcDur", 20);
+    activeStation = (time_station_t)prefs.getInt("station", DEFAULT_STATION);
+    userOffsetHours = prefs.getInt("offsetH", DEFAULT_OFFSET_HOURS);
+    scheduleEnabled = prefs.getBool("schedEn", (DEFAULT_SCHEDULE_ENABLED != 0));
+    broadcastHour = prefs.getInt("bcHour", DEFAULT_BROADCAST_HOUR);
+    broadcastMinute = prefs.getInt("bcMin", DEFAULT_BROADCAST_MINUTE);
+    broadcastDurationMin = prefs.getInt("bcDur", DEFAULT_BROADCAST_DURATION);
     wifiSsid = prefs.getString("ssid", DEFAULT_WIFI_SSID);
     wifiPassword = prefs.getString("pass", DEFAULT_WIFI_PASS);
     ntpServer = prefs.getString("ntp", DEFAULT_NTP_SERVER);
