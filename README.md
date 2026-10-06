@@ -150,52 +150,60 @@ This configuration connects directly to ESP32-C3 GPIO 2 with built-in safety aga
 
 > 🎨 **Visual Diagram:** A full vector graphic illustration is available in [breadboard_layout.svg](breadboard_layout.svg) or viewable in your browser via [breadboard_layout.html](breadboard_layout.html).
 
-Here is the top-down terminal row mapping for a standard breadboard:
+Here is the top-down terminal row mapping for a standard breadboard with the **ESP32-C3 SuperMini mounted directly across the center ravine**:
 
 ```
-  (+) POWER RAIL  [+5V from ESP32 VIN/5V] ─── (Red Line)
-  (-) GROUND RAIL [GND from ESP32]         ─── (Blue Line)
+  (+) POWER RAIL  [+5V from ESP32 Pin F1]  ─── (Red Line)
+  (-) GROUND RAIL [GND from ESP32 Pin F2]  ─── (Blue Line)
 
    Row    [A B C D E]  (Center Ravine)  [F G H I J]
   ────────────────────────────────────────────────────────────────────────
-   08:    [ . . . . . ]                  [ . . . . . ] ── Wire to ESP32 GPIO 2
-                                               │
-                                         [ 1k R_base ]
-                                               │
-   11:    [ . . . . . ]                  [ . . . . . ] ── Transistor BASE (B)
-   10:    [ . . . . . ]                  [ . . . . . ] ── Transistor EMITTER (E) ── Wire to (-) GND
-   12:    [ . . . . . ]                  [ . . . . . ] ── Transistor COLLECTOR (C)
+   01:    [ . . . . . ] ── [ESP32-C3] ── [ 5V ]  [ . . . . ] ── Wire to (+) 5V Rail
+   02:    [ . . . . . ] ── [SuperMini]── [ GND ] [ . . . . ] ── Wire to (-) GND Rail
+   03:    [ . . . . . ] ── [ Rows   ] ── [ 3V3 ] [ . . . . ]
+   04:    [ . . . . . ] ── [ 1 to 8 ] ── [ IO4 ] [ . . . . ]
+   05:    [ . . . . . ] ── [ across ] ── [ IO3 ] [ . . . . ]
+   06:    [ . . . . . ] ── [ ravine ] ── [ IO2 ] [ . . . . ] ── [ 1k R_base ]
+   07:    [ . . . . . ] ── [        ] ── [ IO1 ] [ . . . . ]          │
+   08:    [ . . . . . ] ── [        ] ── [ IO0 ] [ . . . . ]          │
+                                                                      │
+   11:    [ . . . . . ]                  [ . . . . . ] ── Transistor EMITTER (E) ── Wire to (-) GND
+   12:    [ . . . . . ]                  [ . . . . . ] ── Transistor BASE (B) ◄─────┘
+   13:    [ . . . . . ]                  [ . . . . . ] ── Transistor COLLECTOR (C)
                                                │
                                        ┌───────┴───────┐
                                        │ 3.5mH Inductor│  (Parallel LC Tank)
                                        │ 1.5nF Cap     │
                                        └───────┬───────┘
                                                │
-   15:    [ . . . . . ]                  [ . . . . . ]
+   17:    [ . . . . . ]                  [ . . . . . ]
                                                │
                                          [ 220 ohm ]   ── R_damp connects directly
-                                               │          from Row 15 to (+) 5V Rail
+                                               │          from Row 17 to (+) 5V Rail
   ────────────────────────────────────────────────────────────────────────
 ```
 
 #### Step-by-Step Breadboard Connections:
-1. **Power Rails:**
-   * Wire ESP32 **5V** (or `VIN`) to the breadboard **(+) Red Rail**.
-   * Wire ESP32 **GND** to the breadboard **(-) Blue Rail**.
-2. **NPN Transistor:**
-   * Plug into Rows 10, 11, and 12 (assuming standard American E-B-C pinout like 2N3904 / 2N2222):
-     * **Row 10 = Emitter (E)** $\rightarrow$ Add a short jumper wire from Row 10 to **(-) Blue GND Rail**.
-     * **Row 11 = Base (B)** $\rightarrow$ Plug one leg of the **$1\text{ k}\Omega$ resistor** here.
-     * **Row 12 = Collector (C)** $\rightarrow$ This is the bottom of the LC tank.
-   * *(If using BC547 or S8050, align according to the Transistor Pinout Quick Reference table above).*
-3. **Base Drive:**
-   * Plug the other leg of the **$1\text{ k}\Omega$ resistor** into **Row 8**.
-   * Run a jumper wire from **Row 8** to **ESP32 GPIO 2** (LEDC PWM output).
-4. **LC Tank (Inductor + Capacitor in Parallel):**
-   * Plug the **3.5 mH Inductor** across **Row 12** and **Row 15**.
-   * Plug the **1.5 nF Capacitor** across the exact same rows: **Row 12** and **Row 15**.
-5. **Damping Resistor:**
-   * Plug one leg of the **$220\,\Omega$ resistor** into **Row 15**.
+1. **Mount the ESP32-C3 SuperMini:**
+   * Plug the module directly into **Rows 1 to 8** spanning the center ravine:
+     * **Column E (Left):** GPIO 5 down to GPIO 21 (all left pins open).
+     * **Column F (Right):** Pin **F1 = 5V**, **F2 = GND**, Pin **F6 = GPIO 2 (Antenna Out)**.
+2. **Power Rails:**
+   * Add a short red jumper wire from **Row 1 (Col G)** to the **(+) Red Rail**.
+   * Add a short black jumper wire from **Row 2 (Col G)** to the **(-) Blue Rail**.
+3. **NPN Transistor:**
+   * Plug into **Rows 11, 12, and 13** in Column G (standard 2N3904 / 2N2222 E-B-C pinout):
+     * **Row 11 = Emitter (E)** $\rightarrow$ Add a short black jumper from Row 11 (Col H) to **(-) Blue GND Rail**.
+     * **Row 12 = Base (B)** $\rightarrow$ Receives base drive from the $1\text{ k}\Omega$ resistor.
+     * **Row 13 = Collector (C)** $\rightarrow$ Connects to the bottom of the LC tank.
+4. **Base Drive Resistor ($1\text{ k}\Omega$):**
+   * Plug one leg of the **$1\text{ k}\Omega$ resistor** into **Row 6 (Col I)** (directly taps ESP32 GPIO 2).
+   * Plug the other leg into **Row 12 (Col I)** (directly taps the transistor Base). No loose wires required!
+5. **LC Tank (Parallel Inductor + Capacitor):**
+   * Plug the **3.5 mH Inductor** across **Row 13 (Col F)** and **Row 17 (Col F)**.
+   * Plug the **1.5 nF Capacitor** across **Row 13 (Col H)** and **Row 17 (Col H)**.
+6. **Damping Resistor ($220\,\Omega$):**
+   * Plug one leg of the **$220\,\Omega$ resistor** into **Row 17 (Col J)**.
    * Plug the other leg directly into the **(+) Red 5V Rail**.
 
 ---
