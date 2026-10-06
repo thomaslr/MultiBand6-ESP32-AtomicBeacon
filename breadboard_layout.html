@@ -480,12 +480,27 @@
     </g>
 
     <!-- ================================================================ -->
-    <!-- 5. LC TANK: 3.5 mH INDUCTOR (SPANS ROW 13 TO ROW 17, COL F = 415) -->
+    <!-- 5. LC TANK: 1.5 nF CAPACITOR (SPANS ROW 13 TO ROW 17, COL F = 415) -->
+    <!-- Inner column towards center ravine for clearance -->
+    <!-- ================================================================ -->
+    <g filter="url(#shadow)">
+      <line x1="415" y1="332.0" x2="415" y2="426.0" stroke="#94a3b8" stroke-width="2.5"/>
+      <!-- Boxy Film Capacitor centered around y = 379 -->
+      <rect x="402" y="358.0" width="26" height="42" rx="4" fill="url(#cap-grad)" stroke="#a16207" stroke-width="1.5"/>
+      <text x="415" y="377.0" fill="#713f12" font-size="8.5" font-weight="800" text-anchor="middle">1.5nF</text>
+      <text x="415" y="389.0" fill="#713f12" font-size="8" font-weight="700" text-anchor="middle">152J</text>
+      <circle cx="415" cy="332.0" r="4.5" fill="#94a3b8"/>
+      <circle cx="415" cy="426.0" r="4.5" fill="#94a3b8"/>
+    </g>
+
+    <!-- ================================================================ -->
+    <!-- 6. LC TANK: 3.5 mH INDUCTOR (SPANS ROW 13 TO ROW 17, COL H = 471) -->
+    <!-- Outer column nearer breadboard edge for maximum RF radiation & watch access -->
     <!-- ================================================================ -->
     <!-- Leads -->
-    <line x1="415" y1="332.0" x2="415" y2="426.0" stroke="#94a3b8" stroke-width="3"/>
-    <!-- Bobbin Inductor Body -->
-    <g transform="translate(370, 354.0)" filter="url(#shadow)">
+    <line x1="471" y1="332.0" x2="471" y2="426.0" stroke="#94a3b8" stroke-width="3"/>
+    <!-- Bobbin Inductor Body centered at x = 471 (426 + 45 = 471) -->
+    <g transform="translate(426, 354.0)" filter="url(#shadow)">
       <!-- Bottom flange -->
       <ellipse cx="45" cy="45" rx="28" ry="10" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
       <!-- Copper Winding Spool -->
@@ -503,21 +518,8 @@
       <text x="45" y="13" fill="#94a3b8" font-size="8.5" font-weight="700" text-anchor="middle">3.5 mH</text>
       <text x="45" y="30" fill="#f8fafc" font-size="9" font-weight="800" text-anchor="middle">16x18mm</text>
     </g>
-    <circle cx="415" cy="332.0" r="4.5" fill="#94a3b8"/>
-    <circle cx="415" cy="426.0" r="4.5" fill="#94a3b8"/>
-
-    <!-- ================================================================ -->
-    <!-- 6. LC TANK: 1.5 nF CAPACITOR (SPANS ROW 13 TO ROW 17, COL H = 471) -->
-    <!-- ================================================================ -->
-    <g filter="url(#shadow)">
-      <line x1="471" y1="332.0" x2="471" y2="426.0" stroke="#94a3b8" stroke-width="2.5"/>
-      <!-- Boxy Film Capacitor centered around y = 379 -->
-      <rect x="458" y="358.0" width="26" height="42" rx="4" fill="url(#cap-grad)" stroke="#a16207" stroke-width="1.5"/>
-      <text x="471" y="377.0" fill="#713f12" font-size="8.5" font-weight="800" text-anchor="middle">1.5nF</text>
-      <text x="471" y="389.0" fill="#713f12" font-size="8" font-weight="700" text-anchor="middle">152J</text>
-      <circle cx="471" cy="332.0" r="4.5" fill="#94a3b8"/>
-      <circle cx="471" cy="426.0" r="4.5" fill="#94a3b8"/>
-    </g>
+    <circle cx="471" cy="332.0" r="4.5" fill="#94a3b8"/>
+    <circle cx="471" cy="426.0" r="4.5" fill="#94a3b8"/>
 
     <!-- ================================================================ -->
     <!-- 7. DAMPING RESISTOR (220 Ohm) (ROW 17 COL J = 527 TO RED +5V RAIL = 720) -->
@@ -646,7 +648,7 @@
     <circle cx="22" cy="22" r="12" fill="#38bdf8"/>
     <text x="22" y="26" fill="#0f172a" font-size="12" font-weight="900" text-anchor="middle">3</text>
     <text x="42" y="22" fill="#f8fafc" font-size="12" font-weight="700">LC Tank (Rows 13 to 17)</text>
-    <text x="42" y="38" fill="#94a3b8" font-size="10.5">3.5 mH Inductor (Col F) + 1.5 nF Cap (Col H)</text>
+    <text x="42" y="38" fill="#94a3b8" font-size="10.5">1.5 nF Cap (Col F) + 3.5 mH Inductor (Col H)</text>
     <text x="42" y="52" fill="#94a3b8" font-size="10.5">Row 13: Collector • Row 17: Tank High Side</text>
   </g>
 

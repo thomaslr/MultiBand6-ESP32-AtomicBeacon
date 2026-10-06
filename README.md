@@ -200,8 +200,8 @@ Here is the top-down terminal row mapping for a standard breadboard with the **E
    * Plug one leg of the **$1\text{ k}\Omega$ resistor** into **Row 6 (Col I)** (directly taps ESP32 GPIO 2).
    * Plug the other leg into **Row 12 (Col I)** (directly taps the transistor Base). No loose wires required!
 5. **LC Tank (Parallel Inductor + Capacitor):**
-   * Plug the **3.5 mH Inductor** across **Row 13 (Col F)** and **Row 17 (Col F)**.
-   * Plug the **1.5 nF Capacitor** across **Row 13 (Col H)** and **Row 17 (Col H)**.
+   * Plug the **1.5 nF Capacitor** across **Row 13 (Col F)** and **Row 17 (Col F)** (inner position, towards center ravine for clearance).
+   * Plug the **3.5 mH Inductor** across **Row 13 (Col H)** and **Row 17 (Col H)** (outer position, nearer breadboard edge for maximum RF radiation & easy watch placement).
 6. **Damping Resistor ($220\,\Omega$):**
    * Plug one leg of the **$220\,\Omega$ resistor** into **Row 17 (Col J)**.
    * Plug the other leg directly into the **(+) Red 5V Rail**.
