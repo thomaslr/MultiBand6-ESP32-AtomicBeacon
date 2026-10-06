@@ -1,0 +1,11 @@
+# PlatformIO build artifacts
+.pio/
+.vscode/
+
+# Build outputs & binaries
+*.o
+*.out
+test_native/test_encoder
+
+# macOS system files
+.DS_Store

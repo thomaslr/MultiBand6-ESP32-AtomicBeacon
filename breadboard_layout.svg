@@ -1,0 +1,720 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 820" width="100%" height="100%" style="background:#0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <defs>
+    <!-- Filters for drop shadows -->
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="3" dy="5" stdDeviation="5" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+    <filter id="wire-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#000000" flood-opacity="0.4"/>
+    </filter>
+    <filter id="soft-glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    
+    <!-- Gradients -->
+    <linearGradient id="bb-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#eaeef2"/>
+    </linearGradient>
+    <linearGradient id="esp-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <linearGradient id="shield-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#cbd5e1"/>
+      <stop offset="50%" stop-color="#94a3b8"/>
+      <stop offset="100%" stop-color="#64748b"/>
+    </linearGradient>
+    <linearGradient id="copper-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#b45309"/>
+      <stop offset="30%" stop-color="#f59e0b"/>
+      <stop offset="70%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#92400e"/>
+    </linearGradient>
+    <linearGradient id="cap-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#facc15"/>
+      <stop offset="100%" stop-color="#ca8a04"/>
+    </linearGradient>
+    <linearGradient id="resistor-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="50%" stop-color="#fde68a"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Title & Legend Header -->
+  <g transform="translate(40, 45)">
+    <rect x="-10" y="-20" width="1220" height="65" rx="12" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+    <text x="20" y="16" fill="#38bdf8" font-size="20" font-weight="700" letter-spacing="0.5">ESP32-C3 Radio Atomic Clock Simulator — Breadboard Layout</text>
+    <text x="20" y="36" fill="#94a3b8" font-size="13">NPN Booster Circuit Configuration • 3.5 mH Inductor + 1.5 nF Film Cap Tank • 220 Ω Damping Resistor</text>
+    <circle cx="1120" cy="18" r="7" fill="#10b981" filter="url(#soft-glow)"/>
+    <text x="1135" y="22" fill="#e2e8f0" font-size="13" font-weight="600">68.5 kHz BPC Active</text>
+  </g>
+
+  <!-- ==================== BREADBOARD ==================== -->
+  <g transform="translate(460, 130)" filter="url(#shadow)">
+    <!-- Main Breadboard Body -->
+    <rect x="0" y="0" width="760" height="630" rx="16" fill="url(#bb-grad)" stroke="#cbd5e1" stroke-width="2"/>
+    <rect x="10" y="10" width="740" height="610" rx="12" fill="none" stroke="#e2e8f0" stroke-width="1.5"/>
+
+    <!-- Left Power Rail -->
+    <line x1="30" y1="35" x2="30" y2="595" stroke="#3b82f6" stroke-width="3" stroke-linecap="round"/>
+    <line x1="60" y1="35" x2="60" y2="595" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+    <text x="24" y="25" fill="#3b82f6" font-size="18" font-weight="900">-</text>
+    <text x="54" y="25" fill="#ef4444" font-size="18" font-weight="900">+</text>
+    <text x="24" y="618" fill="#3b82f6" font-size="18" font-weight="900">-</text>
+    <text x="54" y="618" fill="#ef4444" font-size="18" font-weight="900">+</text>
+
+    <!-- Center Ravine -->
+    <rect x="365" y="30" width="16" height="570" rx="4" fill="#cbd5e1" opacity="0.6"/>
+
+    <!-- Tie Point Holes (Rows 1 to 24) -->
+<text x="95" y="54.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">01</text>
+<text x="655" y="54.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">01</text>
+<circle cx="30" cy="50.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="50.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="47.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="47.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="47.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="47.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="47.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="47.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="47.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="47.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="47.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="47.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="50.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="50.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="77.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">02</text>
+<text x="655" y="77.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">02</text>
+<circle cx="30" cy="73.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="73.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="70.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="70.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="70.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="70.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="70.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="70.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="70.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="70.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="70.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="70.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="73.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="73.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="101.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">03</text>
+<text x="655" y="101.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">03</text>
+<circle cx="30" cy="97.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="97.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="94.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="94.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="94.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="94.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="94.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="94.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="94.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="94.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="94.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="94.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="97.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="97.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="124.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">04</text>
+<text x="655" y="124.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">04</text>
+<circle cx="30" cy="120.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="120.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="117.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="117.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="117.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="117.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="117.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="117.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="117.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="117.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="117.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="117.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="120.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="120.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="148.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">05</text>
+<text x="655" y="148.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">05</text>
+<circle cx="30" cy="144.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="144.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="141.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="141.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="141.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="141.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="141.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="141.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="141.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="141.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="141.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="141.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="144.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="144.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="171.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">06</text>
+<text x="655" y="171.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">06</text>
+<circle cx="30" cy="167.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="167.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="164.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="164.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="164.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="164.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="164.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="164.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="164.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="164.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="164.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="164.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="167.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="167.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="195.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">07</text>
+<text x="655" y="195.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">07</text>
+<circle cx="30" cy="191.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="191.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="188.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="188.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="188.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="188.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="188.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="188.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="188.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="188.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="188.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="188.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="191.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="191.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="218.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">08</text>
+<text x="655" y="218.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">08</text>
+<circle cx="30" cy="214.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="214.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="211.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="211.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="211.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="211.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="211.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="211.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="211.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="211.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="211.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="211.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="214.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="214.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="242.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">09</text>
+<text x="655" y="242.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">09</text>
+<circle cx="30" cy="238.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="238.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="235.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="235.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="235.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="235.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="235.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="235.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="235.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="235.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="235.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="235.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="238.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="238.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="265.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">10</text>
+<text x="655" y="265.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">10</text>
+<circle cx="30" cy="261.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="261.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="258.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="258.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="258.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="258.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="258.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="258.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="258.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="258.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="258.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="258.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="261.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="261.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="289.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">11</text>
+<text x="655" y="289.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">11</text>
+<circle cx="30" cy="285.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="285.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="282.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="282.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="282.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="282.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="282.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="282.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="282.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="282.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="282.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="282.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="285.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="285.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="312.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">12</text>
+<text x="655" y="312.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">12</text>
+<circle cx="30" cy="308.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="308.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="305.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="305.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="305.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="305.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="305.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="305.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="305.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="305.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="305.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="305.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="308.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="308.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="336.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">13</text>
+<text x="655" y="336.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">13</text>
+<circle cx="30" cy="332.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="332.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="329.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="329.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="329.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="329.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="329.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="329.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="329.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="329.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="329.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="329.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="332.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="332.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="359.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">14</text>
+<text x="655" y="359.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">14</text>
+<circle cx="30" cy="355.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="355.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="352.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="352.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="352.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="352.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="352.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="352.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="352.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="352.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="352.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="352.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="355.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="355.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="383.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">15</text>
+<text x="655" y="383.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">15</text>
+<circle cx="30" cy="379.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="379.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="376.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="376.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="376.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="376.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="376.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="376.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="376.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="376.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="376.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="376.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="379.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="379.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="406.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">16</text>
+<text x="655" y="406.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">16</text>
+<circle cx="30" cy="402.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="402.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="399.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="399.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="399.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="399.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="399.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="399.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="399.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="399.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="399.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="399.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="402.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="402.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="430.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">17</text>
+<text x="655" y="430.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">17</text>
+<circle cx="30" cy="426.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="426.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="423.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="423.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="423.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="423.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="423.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="423.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="423.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="423.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="423.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="423.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="426.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="426.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="453.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">18</text>
+<text x="655" y="453.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">18</text>
+<circle cx="30" cy="449.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="449.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="446.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="446.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="446.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="446.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="446.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="446.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="446.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="446.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="446.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="446.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="449.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="449.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="477.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">19</text>
+<text x="655" y="477.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">19</text>
+<circle cx="30" cy="473.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="473.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="470.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="470.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="470.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="470.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="470.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="470.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="470.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="470.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="470.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="470.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="473.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="473.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="500.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">20</text>
+<text x="655" y="500.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">20</text>
+<circle cx="30" cy="496.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="496.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="493.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="493.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="493.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="493.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="493.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="493.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="493.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="493.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="493.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="493.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="496.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="496.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="524.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">21</text>
+<text x="655" y="524.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">21</text>
+<circle cx="30" cy="520.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="520.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="517.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="517.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="517.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="517.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="517.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="517.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="517.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="517.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="517.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="517.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="520.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="520.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="547.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">22</text>
+<text x="655" y="547.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">22</text>
+<circle cx="30" cy="543.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="543.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="540.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="540.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="540.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="540.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="540.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="540.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="540.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="540.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="540.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="540.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="543.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="543.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="571.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">23</text>
+<text x="655" y="571.0" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">23</text>
+<circle cx="30" cy="567.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="567.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="564.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="564.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="564.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="564.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="564.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="564.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="564.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="564.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="564.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="564.0" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="567.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="567.0" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<text x="95" y="594.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">24</text>
+<text x="655" y="594.5" fill="#64748b" font-size="11" font-weight="600" text-anchor="middle">24</text>
+<circle cx="30" cy="590.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="60" cy="590.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<rect x="132" y="587.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="160" y="587.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="188" y="587.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="216" y="587.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="244" y="587.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="412" y="587.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="440" y="587.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="468" y="587.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="496" y="587.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<rect x="524" y="587.5" width="6" height="6" rx="1.5" fill="#1e293b" stroke="#94a3b8" stroke-width="0.6"/>
+<circle cx="690" cy="590.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+<circle cx="720" cy="590.5" r="3.2" fill="#1e293b" stroke="#94a3b8" stroke-width="0.8"/>
+    <line x1="690" y1="35" x2="690" y2="595" stroke="#3b82f6" stroke-width="3" stroke-linecap="round"/>
+    <line x1="720" y1="35" x2="720" y2="595" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
+    <text x="684" y="25" fill="#3b82f6" font-size="18" font-weight="900">-</text>
+    <text x="714" y="25" fill="#ef4444" font-size="18" font-weight="900">+</text>
+    <text x="684" y="618" fill="#3b82f6" font-size="18" font-weight="900">-</text>
+    <text x="714" y="618" fill="#ef4444" font-size="18" font-weight="900">+</text>
+    
+    <!-- Column Letters -->
+    <g fill="#64748b" font-size="11" font-weight="700">
+      <text x="135" y="32" text-anchor="middle">A</text><text x="163" y="32" text-anchor="middle">B</text><text x="191" y="32" text-anchor="middle">C</text><text x="219" y="32" text-anchor="middle">D</text><text x="247" y="32" text-anchor="middle">E</text>
+      <text x="415" y="32" text-anchor="middle">F</text><text x="443" y="32" text-anchor="middle">G</text><text x="471" y="32" text-anchor="middle">H</text><text x="499" y="32" text-anchor="middle">I</text><text x="527" y="32" text-anchor="middle">J</text>
+    </g>
+
+    <!-- ====== 1. NPN Transistor (Rows 10, 11, 12 in Col F/G) ====== -->
+    <!-- Transistor pins: Row 10 (Emitter, col F=415), Row 11 (Base, col G=443), Row 12 (Collector, col F=415) -->
+    <g transform="translate(425, 273.25)" filter="url(#shadow)">
+      <!-- TO-92 Body -->
+      <path d="M -16,-20 C 14,-20 18,-8 18,10 C 18,28 14,38 -16,38 Z" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+      <rect x="-18" y="-18" width="5" height="54" fill="#334155" rx="1"/>
+      <!-- Label on flat face -->
+      <text x="-12" y="14" fill="#94a3b8" font-size="8.5" font-weight="700" transform="rotate(90 -12,14)">NPN (2N3904 / 2N2222)</text>
+    </g>
+    <!-- Transistor Leads into breadboard holes -->
+    <!-- Emitter: Row 10, col G=443 -->
+    <circle cx="443" cy="261.5" r="4.5" fill="#e2e8f0" stroke="#475569" stroke-width="1.5"/>
+    <!-- Base: Row 11, col G=443 -->
+    <circle cx="443" cy="285.0" r="4.5" fill="#e2e8f0" stroke="#475569" stroke-width="1.5"/>
+    <!-- Collector: Row 12, col G=443 -->
+    <circle cx="443" cy="308.5" r="4.5" fill="#e2e8f0" stroke="#475569" stroke-width="1.5"/>
+
+    <!-- Jumper from Row 10 (Emitter, col H=471) to Blue GND Rail (x=690) -->
+    <path d="M 471,261.5 C 550,246.5 640,251.5 690,261.5" fill="none" stroke="#1e293b" stroke-width="4.5" stroke-linecap="round" filter="url(#wire-shadow)"/>
+    <circle cx="471" cy="261.5" r="4" fill="#3b82f6"/>
+    <circle cx="690" cy="261.5" r="4" fill="#3b82f6"/>
+
+    <!-- ====== 2. Base Resistor (1k Ohm) (Spans Row 8 to Row 11 in Col I=499) ====== -->
+    <g filter="url(#shadow)">
+      <line x1="499" y1="214.5" x2="499" y2="285.0" stroke="#cbd5e1" stroke-width="2.5"/>
+      <!-- Resistor body -->
+      <rect x="492" y="230.95" width="14" height="38" rx="4" fill="url(#resistor-grad)" stroke="#b45309" stroke-width="1"/>
+      <!-- Bands: Brown, Black, Red, Gold -->
+      <rect x="492" y="235.95" width="14" height="4" fill="#78350f"/>
+      <rect x="492" y="243.95" width="14" height="4" fill="#0f172a"/>
+      <rect x="492" y="251.95" width="14" height="4" fill="#dc2626"/>
+      <rect x="492" y="259.95" width="14" height="3" fill="#eab308"/>
+      <circle cx="499" cy="214.5" r="4" fill="#94a3b8"/>
+      <circle cx="499" cy="285.0" r="4" fill="#94a3b8"/>
+    </g>
+
+    <!-- ====== 3. LC Tank: 3.5 mH Inductor (Spans Row 12 to Row 15, Col F=415) ====== -->
+    <!-- Leads -->
+    <line x1="415" y1="308.5" x2="415" y2="379.0" stroke="#94a3b8" stroke-width="3"/>
+    <!-- Bobbin Inductor Body -->
+    <g transform="translate(370, 313.2)" filter="url(#shadow)">
+      <!-- Bottom flange -->
+      <ellipse cx="45" cy="45" rx="28" ry="10" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+      <!-- Copper Winding Spool -->
+      <rect x="22" y="15" width="46" height="30" rx="3" fill="url(#copper-grad)"/>
+      <!-- Winding ridges -->
+      <line x1="22" y1="20" x2="68" y2="20" stroke="#78350f" stroke-width="1.5"/>
+      <line x1="22" y1="25" x2="68" y2="25" stroke="#78350f" stroke-width="1.5"/>
+      <line x1="22" y1="30" x2="68" y2="30" stroke="#78350f" stroke-width="1.5"/>
+      <line x1="22" y1="35" x2="68" y2="35" stroke="#78350f" stroke-width="1.5"/>
+      <line x1="22" y1="40" x2="68" y2="40" stroke="#78350f" stroke-width="1.5"/>
+      <!-- Heatshrink sleeve / top cylinder -->
+      <rect x="18" y="10" width="54" height="32" rx="4" fill="#0f172a" opacity="0.88"/>
+      <!-- Top flange -->
+      <ellipse cx="45" cy="10" rx="28" ry="10" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+      <text x="45" y="13" fill="#94a3b8" font-size="8.5" font-weight="700" text-anchor="middle">3.5 mH</text>
+      <text x="45" y="30" fill="#f8fafc" font-size="9" font-weight="800" text-anchor="middle">16x18mm</text>
+    </g>
+
+    <!-- ====== 4. LC Tank: 1.5 nF Capacitor (Spans Row 12 to Row 15, Col H=471) ====== -->
+    <g filter="url(#shadow)">
+      <line x1="471" y1="308.5" x2="471" y2="379.0" stroke="#94a3b8" stroke-width="2.5"/>
+      <!-- Boxy Film Capacitor -->
+      <rect x="458" y="315.55" width="26" height="42" rx="4" fill="url(#cap-grad)" stroke="#a16207" stroke-width="1.5"/>
+      <text x="471" y="334.55" fill="#713f12" font-size="8.5" font-weight="800" text-anchor="middle">1.5nF</text>
+      <text x="471" y="346.55" fill="#713f12" font-size="8" font-weight="700" text-anchor="middle">152J</text>
+      <circle cx="471" cy="308.5" r="4" fill="#94a3b8"/>
+      <circle cx="471" cy="379.0" r="4" fill="#94a3b8"/>
+    </g>
+
+    <!-- ====== 5. Damping Resistor (220 Ohm) (Spans Row 15 Col J=527 to Red +5V Rail=720) ====== -->
+    <g filter="url(#shadow)">
+      <!-- Wire lead from Col J to Red Rail -->
+      <line x1="527" y1="379.0" x2="720" y2="379.0" stroke="#cbd5e1" stroke-width="2.5"/>
+      <!-- Resistor body -->
+      <rect x="580" y="372.0" width="48" height="14" rx="4" fill="url(#resistor-grad)" stroke="#b45309" stroke-width="1"/>
+      <!-- Color bands: Red, Red, Brown, Gold -->
+      <rect x="590" y="372.0" width="4.5" height="14" fill="#dc2626"/>
+      <rect x="600" y="372.0" width="4.5" height="14" fill="#dc2626"/>
+      <rect x="610" y="372.0" width="4.5" height="14" fill="#78350f"/>
+      <rect x="620" y="372.0" width="3.5" height="14" fill="#eab308"/>
+      <circle cx="527" cy="379.0" r="4" fill="#94a3b8"/>
+      <circle cx="720" cy="379.0" r="4" fill="#ef4444"/>
+    </g>
+
+    <!-- Row 12 Bridge Wire between Transistor Collector (Col G) & Inductor (Col F) & Cap (Col H) -->
+    <!-- Breadboard row automatically connects them horizontally! -->
+    <!-- Visual highlight showing Row 12 connection -->
+    <rect x="410" y="304.5" width="68" height="8" rx="3" fill="#38bdf8" opacity="0.35"/>
+    <rect x="410" y="375.0" width="122" height="8" rx="3" fill="#f59e0b" opacity="0.35"/>
+  </g>
+
+  <!-- ==================== ESP32-C3-MINI BOARD ==================== -->
+  <g transform="translate(60, 170)" filter="url(#shadow)">
+    <!-- PCB Board -->
+    <rect x="0" y="0" width="310" height="520" rx="14" fill="url(#esp-grad)" stroke="#334155" stroke-width="2"/>
+    <rect x="8" y="8" width="294" height="504" rx="10" fill="none" stroke="#1e293b" stroke-width="1.5"/>
+
+    <!-- USB-C Connector at Top -->
+    <rect x="110" y="-12" width="90" height="26" rx="6" fill="#94a3b8" stroke="#475569" stroke-width="1.5"/>
+    <rect x="125" y="-8" width="60" height="10" rx="3" fill="#0f172a"/>
+    <text x="155" y="28" fill="#64748b" font-size="10" font-weight="700" text-anchor="middle">USB-C POWER</text>
+
+    <!-- PCB Antenna at Bottom or RF Shield -->
+    <rect x="35" y="60" width="240" height="160" rx="8" fill="url(#shield-grad)" stroke="#475569" stroke-width="1.5"/>
+    <rect x="45" y="70" width="220" height="140" rx="6" fill="#334155" opacity="0.4"/>
+    <text x="155" y="125" fill="#f8fafc" font-size="18" font-weight="800" text-anchor="middle" letter-spacing="1">ESP32-C3</text>
+    <text x="155" y="148" fill="#94a3b8" font-size="12" font-weight="600" text-anchor="middle">RISC-V • Wi-Fi • BLE</text>
+    <text x="155" y="172" fill="#38bdf8" font-size="11" font-weight="700" text-anchor="middle">LEDC PWM CARRIER</text>
+
+    <!-- Status LEDs -->
+    <circle cx="65" cy="245" r="5" fill="#ef4444" filter="url(#soft-glow)"/>
+    <text x="78" y="249" fill="#94a3b8" font-size="9" font-weight="700">PWR</text>
+    <circle cx="120" cy="245" r="5" fill="#3b82f6" filter="url(#soft-glow)"/>
+    <text x="133" y="249" fill="#94a3b8" font-size="9" font-weight="700">STATUS</text>
+
+    <!-- Left Header Pins (GND, 3V3, GPIOs) -->
+    <!-- Y from 280 to 480 (8 pins) -->
+
+      <circle cx="25" cy="285" r="6" fill="#1e293b" stroke="#e2e8f0" stroke-width="2"/>
+      <text x="40" y="289" fill="#ef4444" font-size="11" font-weight="700">3V3</text>
+    
+
+      <circle cx="25" cy="312" r="6" fill="#1e293b" stroke="#e2e8f0" stroke-width="2"/>
+      <text x="40" y="316" fill="#3b82f6" font-size="11" font-weight="700">GND</text>
+    
+
+      <circle cx="25" cy="339" r="6" fill="#1e293b" stroke="#e2e8f0" stroke-width="2"/>
+      <text x="40" y="343" fill="#94a3b8" font-size="11" font-weight="700">IO0</text>
+    
+
+      <circle cx="25" cy="366" r="6" fill="#1e293b" stroke="#e2e8f0" stroke-width="2"/>
+      <text x="40" y="370" fill="#94a3b8" font-size="11" font-weight="700">IO1</text>
+    
+
+      <circle cx="25" cy="393" r="6" fill="#1e293b" stroke="#e2e8f0" stroke-width="2"/>
+      <text x="40" y="397" fill="#38bdf8" font-size="11" font-weight="700">IO2</text>
+    
+
+      <circle cx="25" cy="420" r="6" fill="#1e293b" stroke="#e2e8f0" stroke-width="2"/>
+      <text x="40" y="424" fill="#94a3b8" font-size="11" font-weight="700">IO3</text>
+    
+
+      <circle cx="25" cy="447" r="6" fill="#1e293b" stroke="#e2e8f0" stroke-width="2"/>
+      <text x="40" y="451" fill="#94a3b8" font-size="11" font-weight="700">IO4</text>
+    
+
+      <circle cx="25" cy="474" r="6" fill="#1e293b" stroke="#e2e8f0" stroke-width="2"/>
+      <text x="40" y="478" fill="#94a3b8" font-size="11" font-weight="700">IO5</text>
+    
+
+      <circle cx="285" cy="285" r="6" fill="#1e293b" stroke="#e2e8f0" stroke-width="2"/>
+      <text x="270" y="289" fill="#ef4444" font-size="11" font-weight="700" text-anchor="end">5V (VIN)</text>
+    
+
+      <circle cx="285" cy="312" r="6" fill="#1e293b" stroke="#e2e8f0" stroke-width="2"/>
+      <text x="270" y="316" fill="#3b82f6" font-size="11" font-weight="700" text-anchor="end">GND</text>
+    
+
+      <circle cx="285" cy="339" r="6" fill="#1e293b" stroke="#e2e8f0" stroke-width="2"/>
+      <text x="270" y="343" fill="#94a3b8" font-size="11" font-weight="700" text-anchor="end">IO10</text>
+    
+
+      <circle cx="285" cy="366" r="6" fill="#1e293b" stroke="#e2e8f0" stroke-width="2"/>
+      <text x="270" y="370" fill="#94a3b8" font-size="11" font-weight="700" text-anchor="end">IO9</text>
+    
+
+      <circle cx="285" cy="393" r="6" fill="#1e293b" stroke="#e2e8f0" stroke-width="2"/>
+      <text x="270" y="397" fill="#94a3b8" font-size="11" font-weight="700" text-anchor="end">IO8</text>
+    
+
+      <circle cx="285" cy="420" r="6" fill="#1e293b" stroke="#e2e8f0" stroke-width="2"/>
+      <text x="270" y="424" fill="#94a3b8" font-size="11" font-weight="700" text-anchor="end">RX</text>
+    
+
+      <circle cx="285" cy="447" r="6" fill="#1e293b" stroke="#e2e8f0" stroke-width="2"/>
+      <text x="270" y="451" fill="#94a3b8" font-size="11" font-weight="700" text-anchor="end">TX</text>
+    
+
+      <circle cx="285" cy="474" r="6" fill="#1e293b" stroke="#e2e8f0" stroke-width="2"/>
+      <text x="270" y="478" fill="#94a3b8" font-size="11" font-weight="700" text-anchor="end">EN</text>
+    
+  </g>
+  <!-- ==================== JUMPER WIRES ==================== -->
+  <g filter="url(#wire-shadow)">
+    <!-- 1. RED WIRE: ESP32 5V (VIN) pin -> Breadboard Left Red (+) Rail -->
+    <!-- Start: (345, 455) -> End: (520, 200) -->
+    <path d="M 345,455 C 410,455 430,220 520,200" fill="none" stroke="#ef4444" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="345" cy="455" r="5" fill="#fca5a5" stroke="#b91c1c" stroke-width="1.5"/>
+    <circle cx="520" cy="200" r="5" fill="#fca5a5" stroke="#b91c1c" stroke-width="1.5"/>
+
+    <!-- 2. BLACK WIRE: ESP32 GND pin -> Breadboard Left Blue (-) Rail -->
+    <!-- Start: (345, 482) -> End: (490, 240) -->
+    <path d="M 345,482 C 390,482 420,260 490,240" fill="none" stroke="#0f172a" stroke-width="6.5" stroke-linecap="round"/>
+    <path d="M 345,482 C 390,482 420,260 490,240" fill="none" stroke="#334155" stroke-width="4.5" stroke-linecap="round"/>
+    <circle cx="345" cy="482" r="5" fill="#94a3b8" stroke="#0f172a" stroke-width="1.5"/>
+    <circle cx="490" cy="240" r="5" fill="#94a3b8" stroke="#0f172a" stroke-width="1.5"/>
+
+    <!-- Bridge left power rails to right power rails -->
+    <!-- Blue GND to Blue GND (row 24) -->
+    <path d="M 520,680 C 550,710 1150,710 1180,680" fill="none" stroke="#ef4444" stroke-width="5" stroke-linecap="round"/>
+    <path d="M 490,695 C 530,730 1120,730 1150,695" fill="none" stroke="#1e293b" stroke-width="5" stroke-linecap="round"/>
+
+    <!-- 3. YELLOW WIRE: ESP32 GPIO 2 -> Row 8 (Base Resistor) -->
+    <!-- Start: (85, 563) -> Loop over board -> End: (460 + 415 = 875, 130 + row_y(8) = 344) -->
+    <path d="M 85,563 C 20,563 15,100 250,90 C 550,75 800,200 959,344" fill="none" stroke="#eab308" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="85" cy="563" r="5" fill="#fef08a" stroke="#ca8a04" stroke-width="1.5"/>
+    <circle cx="959" cy="344" r="5" fill="#fef08a" stroke="#ca8a04" stroke-width="1.5"/>
+  </g>
+
+  <!-- ==================== CALLOUT BADGES & LABELS ==================== -->
+  <!-- Callout 1: ESP32 Board -->
+  <g transform="translate(60, 715)">
+    <rect x="0" y="0" width="310" height="70" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+    <circle cx="24" cy="24" r="14" fill="#38bdf8"/>
+    <text x="24" y="29" fill="#0f172a" font-size="14" font-weight="900" text-anchor="middle">1</text>
+    <text x="48" y="24" fill="#f8fafc" font-size="13" font-weight="700">ESP32-C3-Mini</text>
+    <text x="48" y="42" fill="#94a3b8" font-size="11">LEDC PWM on GPIO 2 (Yellow)</text>
+    <text x="48" y="58" fill="#94a3b8" font-size="11">5V (Red) &amp; GND (Black) to Rails</text>
+  </g>
+
+  <!-- Callout 2: Transistor -->
+  <g transform="translate(390, 715)">
+    <rect x="0" y="0" width="270" height="70" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+    <circle cx="24" cy="24" r="14" fill="#38bdf8"/>
+    <text x="24" y="29" fill="#0f172a" font-size="14" font-weight="900" text-anchor="middle">2</text>
+    <text x="48" y="24" fill="#f8fafc" font-size="13" font-weight="700">NPN Transistor (Rows 10-12)</text>
+    <text x="48" y="42" fill="#94a3b8" font-size="11">Row 10: Emitter ──► to GND</text>
+    <text x="48" y="58" fill="#94a3b8" font-size="11">Row 11: Base ──► 1kΩ Resistor</text>
+  </g>
+
+  <!-- Callout 3: LC Tank & Resistor -->
+  <g transform="translate(680, 715)">
+    <rect x="0" y="0" width="310" height="70" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+    <circle cx="24" cy="24" r="14" fill="#38bdf8"/>
+    <text x="24" y="29" fill="#0f172a" font-size="14" font-weight="900" text-anchor="middle">3</text>
+    <text x="48" y="24" fill="#f8fafc" font-size="13" font-weight="700">LC Tank (Rows 12 to 15)</text>
+    <text x="48" y="42" fill="#94a3b8" font-size="11">3.5 mH Inductor + 1.5 nF Cap</text>
+    <text x="48" y="58" fill="#94a3b8" font-size="11">Row 12: Collector • Row 15: +5V</text>
+  </g>
+
+  <!-- Callout 4: Damping Resistor -->
+  <g transform="translate(1010, 715)">
+    <rect x="0" y="0" width="230" height="70" rx="8" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+    <circle cx="24" cy="24" r="14" fill="#38bdf8"/>
+    <text x="24" y="29" fill="#0f172a" font-size="14" font-weight="900" text-anchor="middle">4</text>
+    <text x="48" y="24" fill="#f8fafc" font-size="13" font-weight="700">220 Ω Damping</text>
+    <text x="48" y="42" fill="#94a3b8" font-size="11">Row 15 to (+) 5V Rail</text>
+    <text x="48" y="58" fill="#94a3b8" font-size="11">Broadens passband to ~10 kHz</text>
+  </g>
+</svg>

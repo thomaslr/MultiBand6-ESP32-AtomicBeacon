@@ -1,0 +1,373 @@
+#pragma once
+
+#include <pgmspace.h>
+
+const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TimeStation — ESP32 Radio Atomic Clock</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --green: #10b981;
+      --red: #ef4444;
+      --amber: #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+      padding: 16px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      width: 100%;
+      max-width: 600px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .header {
+      text-align: center;
+      padding: 12px 0;
+    }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+    }
+    .header p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #064e3b;
+      color: #34d399;
+    }
+    .status-badge.transmitting {
+      background: #78350f;
+      color: #fde047;
+      animation: pulse 1.5s infinite;
+    }
+    .status-badge.idle {
+      background: #334155;
+      color: #cbd5e1;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.6; }
+    }
+    .clock-display {
+      font-size: 32px;
+      font-weight: 800;
+      font-family: monospace;
+      color: #f8fafc;
+      text-align: center;
+      letter-spacing: 2px;
+      margin: 8px 0;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { color: var(--text-muted); }
+    .stat-value { font-weight: 600; }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    select, input[type="text"], input[type="password"], input[type="time"], input[type="number"] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0f172a;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    select:focus, input:focus {
+      border-color: var(--accent);
+    }
+    .btn {
+      display: inline-block;
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      text-align: center;
+      transition: background-color 0.2s;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #0f172a;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-transmit {
+      background: var(--green);
+      color: #0f172a;
+      margin-top: 8px;
+    }
+    .btn-stop {
+      background: var(--red);
+      color: #f8fafc;
+      margin-top: 8px;
+    }
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .checkbox-group input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+    .checkbox-group label {
+      margin-bottom: 0;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .alert {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-top: 10px;
+      display: none;
+    }
+    .alert-success { background: #064e3b; color: #6ee7b7; border: 1px solid #059669; }
+    .alert-error { background: #7f1d1d; color: #fca5a5; border: 1px solid #b91c1c; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📡 TimeStation</h1>
+      <p>ESP32-C3 Worldwide Radio Atomic Clock Simulator</p>
+    </div>
+
+    <!-- Live Status Card -->
+    <div class="card">
+      <div class="card-title">
+        <span>CURRENT STATUS</span>
+        <span id="statusBadge" class="status-badge idle">● IDLE</span>
+      </div>
+      <div id="liveClock" class="clock-display">--:--:--</div>
+      <div class="stat-row">
+        <span class="stat-label">Active Station</span>
+        <span id="activeStation" class="stat-value">BPC (China 68.5 kHz)</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Carrier Frequency</span>
+        <span id="carrierFreq" class="stat-value">68,500 Hz</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Next Scheduled Sync</span>
+        <span id="nextSync" class="stat-value">02:00 AM (Daily)</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">Antenna Pin</span>
+        <span class="stat-value">GPIO 2 (LEDC PWM)</span>
+      </div>
+
+      <button id="btnTransmitNow" class="btn btn-transmit" onclick="toggleTransmit()">⚡ Broadcast Now (Test Mode)</button>
+    </div>
+
+    <!-- Configuration Form -->
+    <form id="configForm" class="card" onsubmit="saveConfig(event)">
+      <div class="card-title">STATION & SCHEDULE CONFIGURATION</div>
+
+      <div class="form-group">
+        <label for="station">Time Signal Station</label>
+        <select id="station" name="station" onchange="updateFreqDisplay()">
+          <option value="0">🇨🇳 BPC — China (68.5 kHz)</option>
+          <option value="1">🇺🇸 WWVB — USA (60.0 kHz)</option>
+          <option value="2">🇬🇧 MSF — United Kingdom (60.0 kHz)</option>
+          <option value="3">🇩🇪 DCF77 — Germany (77.5 kHz)</option>
+          <option value="4">🇯🇵 JJY40 — Japan East (40.0 kHz)</option>
+          <option value="5">🇯🇵 JJY60 — Japan West (60.0 kHz)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="offsetHours">Custom Time Offset (Hours)</label>
+        <input type="number" id="offsetHours" name="offsetHours" value="0" step="1" min="-12" max="14">
+        <small style="color: var(--text-muted); font-size: 11px;">0 = Native station timezone. Use ± hours to set destination clock.</small>
+      </div>
+
+      <div class="checkbox-group">
+        <input type="checkbox" id="scheduleEnabled" name="scheduleEnabled" checked>
+        <label for="scheduleEnabled">Enable Deep Sleep Broadcast Schedule</label>
+      </div>
+
+      <div class="form-group">
+        <label for="broadcastTime">Daily Broadcast Start Time (Local)</label>
+        <input type="time" id="broadcastTime" name="broadcastTime" value="02:00">
+      </div>
+
+      <div class="form-group">
+        <label for="broadcastDuration">Broadcast Duration (Minutes)</label>
+        <input type="number" id="broadcastDuration" name="broadcastDuration" value="20" min="5" max="120">
+      </div>
+
+      <div class="card-title" style="margin-top: 20px;">NETWORK SETTINGS</div>
+
+      <div class="form-group">
+        <label for="wifiSsid">Wi-Fi SSID</label>
+        <input type="text" id="wifiSsid" name="wifiSsid" placeholder="Your Wi-Fi Network Name">
+      </div>
+
+      <div class="form-group">
+        <label for="wifiPassword">Wi-Fi Password</label>
+        <input type="password" id="wifiPassword" name="wifiPassword" placeholder="••••••••">
+      </div>
+
+      <div class="form-group">
+        <label for="ntpServer">NTP Time Server</label>
+        <input type="text" id="ntpServer" name="ntpServer" value="pool.ntp.org">
+      </div>
+
+      <button type="submit" class="btn btn-primary">Save Settings</button>
+      <div id="alertBox" class="alert"></div>
+    </form>
+  </div>
+
+  <script>
+    let isTransmitting = false;
+
+    async function loadStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        document.getElementById('liveClock').innerText = data.time || '--:--:--';
+        document.getElementById('activeStation').innerText = data.stationName;
+        document.getElementById('carrierFreq').innerText = data.carrierHz + ' Hz';
+        document.getElementById('nextSync').innerText = data.nextSync || 'Disabled';
+        
+        isTransmitting = data.transmitting;
+        const badge = document.getElementById('statusBadge');
+        const btn = document.getElementById('btnTransmitNow');
+        if (isTransmitting) {
+          badge.className = 'status-badge transmitting';
+          badge.innerText = '⚡ BROADCASTING';
+          btn.className = 'btn btn-stop';
+          btn.innerText = '⏹ Stop Broadcast';
+        } else {
+          badge.className = 'status-badge idle';
+          badge.innerText = '● IDLE';
+          btn.className = 'btn btn-transmit';
+          btn.innerText = '⚡ Broadcast Now (Test Mode)';
+        }
+
+        // Populate form fields on initial load
+        if (!document.getElementById('station').dataset.loaded) {
+          document.getElementById('station').value = data.station;
+          document.getElementById('offsetHours').value = data.offsetHours;
+          document.getElementById('scheduleEnabled').checked = data.scheduleEnabled;
+          document.getElementById('broadcastTime').value = data.broadcastTime;
+          document.getElementById('broadcastDuration').value = data.broadcastDuration;
+          document.getElementById('wifiSsid').value = data.wifiSsid || '';
+          document.getElementById('ntpServer').value = data.ntpServer || 'pool.ntp.org';
+          document.getElementById('station').dataset.loaded = 'true';
+        }
+      } catch (e) {
+        console.log('Fetching status...');
+      }
+    }
+
+    async function toggleTransmit() {
+      const endpoint = isTransmitting ? '/api/stop' : '/api/transmit';
+      await fetch(endpoint, { method: 'POST' });
+      loadStatus();
+    }
+
+    async function saveConfig(e) {
+      e.preventDefault();
+      const form = document.getElementById('configForm');
+      const formData = new FormData(form);
+      const data = {
+        station: parseInt(formData.get('station')),
+        offsetHours: parseInt(formData.get('offsetHours')),
+        scheduleEnabled: document.getElementById('scheduleEnabled').checked,
+        broadcastTime: formData.get('broadcastTime'),
+        broadcastDuration: parseInt(formData.get('broadcastDuration')),
+        wifiSsid: formData.get('wifiSsid'),
+        wifiPassword: formData.get('wifiPassword'),
+        ntpServer: formData.get('ntpServer')
+      };
+
+      const alertBox = document.getElementById('alertBox');
+      try {
+        const res = await fetch('/api/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        alertBox.className = 'alert alert-success';
+        alertBox.innerText = 'Settings saved successfully to flash memory!';
+        alertBox.style.display = 'block';
+        setTimeout(() => alertBox.style.display = 'none', 4000);
+        loadStatus();
+      } catch (err) {
+        alertBox.className = 'alert alert-error';
+        alertBox.innerText = 'Error saving settings: ' + err;
+        alertBox.style.display = 'block';
+      }
+    }
+
+    setInterval(loadStatus, 1000);
+    loadStatus();
+  </script>
+</body>
+</html>
+)rawliteral";
