@@ -125,6 +125,7 @@ void setup() {
     }
 
     Serial.printf("[Config] Station: %s\n", timeproto_get_station_name(activeStation));
+    Serial.printf("[Config] Wi-Fi Target: '%s'\n", wifiSsid.c_str());
     Serial.printf("[Config] Schedule: %02d:%02d, %d min (Enabled: %d)\n",
                   broadcastHour, broadcastMinute, broadcastDurationMin, scheduleEnabled);
 
@@ -167,25 +168,37 @@ void setup() {
     // 4. Normal Boot: Connect to Wi-Fi or Start AP Mode
     if (wifiSsid.length() > 0) {
         Serial.printf("[WiFi] Connecting to '%s'...\n", wifiSsid.c_str());
+        
         WiFi.mode(WIFI_STA);
+        WiFi.setAutoReconnect(true);
         WiFi.begin(wifiSsid.c_str(), wifiPassword.c_str());
         
         int retries = 0;
-        while (WiFi.status() != WL_CONNECTED && retries < 20) {
+        while (WiFi.status() != WL_CONNECTED && retries < 30) {
             delay(500);
             Serial.print(".");
             retries++;
+            if (retries == 15) {
+                // If router had a stale session from a reset, re-trigger
+                Serial.print(" [re-associating] ");
+                WiFi.disconnect();
+                delay(200);
+                WiFi.begin(wifiSsid.c_str(), wifiPassword.c_str());
+            }
         }
 
         if (WiFi.status() == WL_CONNECTED) {
+            WiFi.setSleep(true); // Enable 802.11 Modem-Sleep for lowest power consumption
+            setCpuFrequencyMhz(80); // Drop CPU clock to 80 MHz for power savings
             Serial.printf("\n[WiFi] Connected! IP Address: %s\n", WiFi.localIP().toString().c_str());
+            Serial.println("[Power] 80 MHz CPU & Wi-Fi Modem-Sleep active (ultra-low-power standby).");
             if (MDNS.begin("timestation")) {
                 MDNS.addService("http", "tcp", 80);
                 Serial.println("[mDNS] Responder active at: http://timestation.local");
             }
             syncNtpTime();
         } else {
-            Serial.println("\n[WiFi] Connection failed. Falling back to SoftAP mode.");
+            Serial.println("\n[WiFi] Connection timed out. Falling back to SoftAP mode.");
             isAPMode = true;
         }
     } else {
@@ -214,22 +227,43 @@ void setup() {
 // ============================================================================
 // Loop
 // ============================================================================
+static int lastScheduledBroadcastDay = -1;
+
 void loop() {
     if (isAPMode) {
         dnsServer.processNextRequest();
     }
     server.handleClient();
 
-    // Check if test transmission has timed out
+    // Check if test or scheduled transmission has timed out
     if (isTransmitting && transmitDurationSec > 0) {
         time_t nowSec = time(nullptr);
         if (nowSec - transmitStartSec >= transmitDurationSec) {
-            Serial.println("[Transmitter] Test broadcast completed.");
+            Serial.println("[Transmitter] Broadcast duration completed.");
             stopTransmission();
         }
     }
 
-    delay(10);
+    // Check daily scheduled broadcast (runs in low-power standby without sleeping)
+    if (scheduleEnabled && !isTransmitting && !isAPMode) {
+        time_t now = time(nullptr);
+        if (now > 1700000000) { // Valid NTP epoch
+            time_t localTime = now + timeproto_get_native_utc_offset(activeStation) + (userOffsetHours * 3600);
+            struct tm* tm_local = gmtime(&localTime);
+            if (tm_local && tm_local->tm_hour == broadcastHour && 
+                tm_local->tm_min == broadcastMinute && 
+                tm_local->tm_yday != lastScheduledBroadcastDay) {
+                
+                lastScheduledBroadcastDay = tm_local->tm_yday;
+                Serial.printf("[Schedule] Starting scheduled broadcast (%d min) for %s at %02d:%02d...\n",
+                              broadcastDurationMin, timeproto_get_station_name(activeStation),
+                              broadcastHour, broadcastMinute);
+                startTransmission(broadcastDurationMin * 60);
+            }
+        }
+    }
+
+    delay(20); // Yields CPU to FreeRTOS power-saving idle thread
 }
 
 // ============================================================================
@@ -437,8 +471,11 @@ void handleSave() {
     int ssidIdx = body.indexOf("\"wifiSsid\":\"");
     if (ssidIdx != -1) {
         int endSsid = body.indexOf("\"", ssidIdx + 12);
-        wifiSsid = body.substring(ssidIdx + 12, endSsid);
-        prefs.putString("ssid", wifiSsid);
+        String newSsid = body.substring(ssidIdx + 12, endSsid);
+        if (newSsid.length() > 0) {
+            wifiSsid = newSsid;
+            prefs.putString("ssid", wifiSsid);
+        }
     }
 
     int passIdx = body.indexOf("\"wifiPassword\":\"");

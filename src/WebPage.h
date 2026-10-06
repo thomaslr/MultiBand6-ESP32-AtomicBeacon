@@ -247,7 +247,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
 
       <div class="checkbox-group">
         <input type="checkbox" id="scheduleEnabled" name="scheduleEnabled" checked>
-        <label for="scheduleEnabled">Enable Deep Sleep Broadcast Schedule</label>
+        <label for="scheduleEnabled">Enable Daily Broadcast Schedule (Web Dashboard Always Online)</label>
       </div>
 
       <div class="form-group">
