@@ -35,17 +35,31 @@ The firmware defaults to **GPIO 2** for the antenna carrier output (`#define ANT
 > * **Physical Placement:** Located on the accessible edge header of both the compact **ESP32-C3 SuperMini** and standard **ESP32-C3-DevKitM-1** boards.
 
 ```
-      ESP32-C3 SuperMini Header Pinout
-              ┌──────────────┐
-       [ 5V ] │ [ ]      [ ] │ [ GPIO 5  ]
-      [ GND ] │ [ ]      [ ] │ [ GPIO 6  ]
-     [ 3V3* ] │ [ ]      [ ] │ [ GPIO 7  ]
-   [ GPIO 0 ] │ [ ]      [ ] │ [ GPIO 8  ]
-   [ GPIO 1 ] │ [ ]      [ ] │ [ GPIO 9  ]
-   [ GPIO 2 ] │ [■]      [ ] │ [ GPIO 10 ]  <── [■] GPIO 2 = Antenna Out
-   [ GPIO 3 ] │ [ ]      [ ] │ [ GPIO 20 ] (RX)
-   [ GPIO 4 ] │ [ ]      [ ] │ [ GPIO 21 ] (TX)
-              └───[ USB ]────┘
+      TOP VIEW (Component Side — looking at chip & buttons)
+                       ┌───[ USB-C ]───┐
+     [BOOT Button Side]│               │[RST Button Side]
+              GPIO 5   │ [ ]       [ ] │   5V          <── Top-Right (next to USB)
+              GPIO 6   │ [ ]       [ ] │   GND (G)     <── Next to 5V
+              GPIO 7   │ [ ]       [ ] │   3V3 (3.3)   <── Regulated 3.3V
+              GPIO 8   │ [ ]       [ ] │   GPIO 4
+              GPIO 9   │ [ ]       [ ] │   GPIO 3
+             GPIO 10   │ [ ]       [■] │   GPIO 2      <── [■] ANTENNA OUT (Pin 6)
+             GPIO 20   │ [ ]       [ ] │   GPIO 1
+   (Pin 21)  GPIO 21   │ [ ]       [ ] │   GPIO 0      (Pin 0)
+                       └──[ Antenna ]──┘
+
+      BOTTOM VIEW (Underside — looking at PCB silkscreen labels)
+                       ┌───[ USB-C ]───┐
+                       │               │
+     Top-Left (5V) ──► │ [ ]       [ ] │   GPIO 5
+              GND (G)  │ [ ]       [ ] │   GPIO 6
+            3V3 (3.3)  │ [ ]       [ ] │   GPIO 7
+               GPIO 4  │ [ ]       [ ] │   GPIO 8
+               GPIO 3  │ [ ]       [ ] │   GPIO 9
+   ANTENNA OUT ──────► │ [■]       [ ] │   GPIO 10
+               GPIO 1  │ [ ]       [ ] │   GPIO 20
+     (Pin 0)   GPIO 0  │ [ ]       [ ] │   GPIO 21     (Pin 21)
+                       └───────────────┘
 ```
 
 ---
