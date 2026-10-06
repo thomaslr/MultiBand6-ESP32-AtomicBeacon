@@ -11,12 +11,38 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <DNSServer.h>
+#include <ESPmDNS.h>
 #include <Preferences.h>
 #include <time.h>
 #include <esp_sleep.h>
 #include <esp_timer.h>
 #include "TimeProtocols.h"
 #include "WebPage.h"
+
+// --- Compile-Time Fallbacks (.env via scripts/load_env.py) ---
+#ifndef DEFAULT_WIFI_SSID
+  #ifdef WIFI_SSID
+    #define DEFAULT_WIFI_SSID WIFI_SSID
+  #else
+    #define DEFAULT_WIFI_SSID ""
+  #endif
+#endif
+
+#ifndef DEFAULT_WIFI_PASS
+  #ifdef WIFI_PASSWORD
+    #define DEFAULT_WIFI_PASS WIFI_PASSWORD
+  #else
+    #define DEFAULT_WIFI_PASS ""
+  #endif
+#endif
+
+#ifndef DEFAULT_NTP_SERVER
+  #ifdef NTP_SERVER
+    #define DEFAULT_NTP_SERVER NTP_SERVER
+  #else
+    #define DEFAULT_NTP_SERVER "pool.ntp.org"
+  #endif
+#endif
 
 // --- Pin Definitions ---
 #define ANTENNA_PIN      2
@@ -88,9 +114,15 @@ void setup() {
     broadcastHour = prefs.getInt("bcHour", 2);
     broadcastMinute = prefs.getInt("bcMin", 0);
     broadcastDurationMin = prefs.getInt("bcDur", 20);
-    wifiSsid = prefs.getString("ssid", "");
-    wifiPassword = prefs.getString("pass", "");
-    ntpServer = prefs.getString("ntp", "pool.ntp.org");
+    wifiSsid = prefs.getString("ssid", DEFAULT_WIFI_SSID);
+    wifiPassword = prefs.getString("pass", DEFAULT_WIFI_PASS);
+    ntpServer = prefs.getString("ntp", DEFAULT_NTP_SERVER);
+
+    // Fall back to compile-time .env defaults if NVS credentials are blank
+    if (wifiSsid.length() == 0 && String(DEFAULT_WIFI_SSID).length() > 0) {
+        wifiSsid = DEFAULT_WIFI_SSID;
+        wifiPassword = DEFAULT_WIFI_PASS;
+    }
 
     Serial.printf("[Config] Station: %s\n", timeproto_get_station_name(activeStation));
     Serial.printf("[Config] Schedule: %02d:%02d, %d min (Enabled: %d)\n",
@@ -147,6 +179,10 @@ void setup() {
 
         if (WiFi.status() == WL_CONNECTED) {
             Serial.printf("\n[WiFi] Connected! IP Address: %s\n", WiFi.localIP().toString().c_str());
+            if (MDNS.begin("timestation")) {
+                MDNS.addService("http", "tcp", 80);
+                Serial.println("[mDNS] Responder active at: http://timestation.local");
+            }
             syncNtpTime();
         } else {
             Serial.println("\n[WiFi] Connection failed. Falling back to SoftAP mode.");

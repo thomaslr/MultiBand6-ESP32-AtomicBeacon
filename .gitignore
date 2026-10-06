@@ -7,5 +7,10 @@
 *.out
 test_native/test_encoder
 
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
 # macOS system files
 .DS_Store
