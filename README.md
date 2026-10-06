@@ -17,24 +17,98 @@ An open-hardware, low-power near-field radio transmitter built on the **ESP32-C3
 
 ---
 
-## 2. Hardware Circuit Schematics
+## 2. Hardware Circuit Schematics & Pinout
 
-### Direct GPIO Drive (Minimalist & Protected for Bench / Desk Use)
+### Default Pin Assignment & ESP32-C3 SuperMini Pinout
 
-This configuration connects directly to an ESP32-C3 GPIO pin with built-in safety against DC overcurrent and back-EMF spikes:
+The firmware defaults to **GPIO 2** for the antenna carrier output (`#define ANTENNA_PIN 2` in `src/main.cpp`).
+
+| Board Pin | ESP32-C3 Signal | Role | Circuit Connection |
+| :--- | :--- | :--- | :--- |
+| **GPIO 2** | `IO2` (LEDC Ch 0) | **Default RF Carrier Out** | Connects to base resistor ($1\text{ k}\Omega$) or DC-blocking cap ($1\,\mu\text{F}$) |
+| **5V / VIN** | `VBUS` (USB 5V) | Primary Power Rail | Supplies the transistor booster circuit & damping resistor |
+| **GND** | `GND` | Common Ground Return | Connects to transistor emitter and breadboard ground rail |
+
+> **Why GPIO 2?**
+> * **LEDC Peripheral:** Native hardware routing to LEDC channel 0 with fractional divider clocking.
+> * **Boot Stability:** Not a bootstrapping/strapping pin that interferes with USB flashing, serial upload, or cold boot.
+> * **Physical Placement:** Located on the accessible edge header of both the compact **ESP32-C3 SuperMini** and standard **ESP32-C3-DevKitM-1** boards.
 
 ```
-                          C_block       R_damp
-                         [ 1 uF ]     [ 220 ohm ]
-   ESP32-C3 GPIO ---------[ || ]--------[ \/\/\ ]---------+-----------------+
-   (LEDC PWM Out)                                         |                 |
-                                                       +------+          +------+
-                                                       |      |          |      |
-                                                    3.5 mH  Inductor  1.5 nF Capacitor
-                                                       |      |          |      |
-                                                       +------+          +------+
-                                                          |                 |
-   ESP32-C3 GND ------------------------------------------+-----------------+
+      ESP32-C3 SuperMini Header Pinout
+              ┌──────────────┐
+       [ 5V ] │ [ ]      [ ] │ [ GPIO 5  ]
+      [ GND ] │ [ ]      [ ] │ [ GPIO 6  ]
+     [ 3V3* ] │ [ ]      [ ] │ [ GPIO 7  ]
+   [ GPIO 0 ] │ [ ]      [ ] │ [ GPIO 8  ]
+   [ GPIO 1 ] │ [ ]      [ ] │ [ GPIO 9  ]
+   [ GPIO 2 ] │ [■]      [ ] │ [ GPIO 10 ]  <── [■] GPIO 2 = Antenna Out
+   [ GPIO 3 ] │ [ ]      [ ] │ [ GPIO 20 ] (RX)
+   [ GPIO 4 ] │ [ ]      [ ] │ [ GPIO 21 ] (TX)
+              └───[ USB ]────┘
+```
+
+---
+
+### Option A: NPN Transistor Booster Circuit (Recommended for 1.0 m+ Range)
+
+This configuration uses any generic small-signal NPN bipolar junction transistor (BJT) powered directly from the **5V USB rail**. It isolates the ESP32 silicon and delivers $3\times$ to $5\times$ more magnetic flux for extended range:
+
+```
+                                  +5V (from ESP32 5V / VIN Pin)
+                                    │
+                                    ├───[ 220 ohm ]─── (R_damp)
+                                    │
+                                    ├───┬───────────────┬───┐
+                                    │   │               │   │
+                                    │  [ 3.5 mH ]   [ 1.5 nF ]  (Parallel LC Tank)
+                                    │  (Inductor)   (Capacitor)
+                                    │   │               │   │
+                                    └───┴───────────────┴───┘
+                                                │
+                                                ▼
+                                         [ C ] (Collector)
+  ESP32-C3 GPIO 2 ──[ 1k ohm ]────────── [ B ]   Generic NPN Transistor
+  (Default PWM Out) (R_base)             [ E ] (Emitter)
+                                                │
+                                                ▼
+  ESP32-C3 GND ─────────────────────────────────┴─── Common Ground (GND)
+```
+
+#### Why This Works Well:
+1. **Zero Stress on ESP32:** The GPIO 2 pin only sources a safe $I_B \approx 2.6\text{ mA}$ into the base through the $1\text{ k}\Omega$ base resistor ($V_{GPIO} = 3.3\text{V}$, $V_{BE} \approx 0.7\text{V}$).
+2. **5V Swing:** The LC tank swings around the 5V rail rather than 3.3V, pushing significantly more magnetic current through the 3.5 mH inductor.
+3. **Uses Your $220\,\Omega$ Resistor:** The $220\,\Omega$ damping resistor limits peak collector current to a cool, safe $\approx 23\text{ mA}$ while maintaining the broad $\sim 10.7\text{ kHz}$ bandwidth so 68.5 kHz BPC resonates smoothly.
+4. **Broadcast Range:** Up to **1.0 m – 1.2 m**.
+
+#### Transistor Pinout Quick Reference (TO-92 Package)
+
+When using standard through-hole transistors from your parts drawer, identify the pin sequence looking at the **flat printed face** with the legs pointing down:
+
+| Transistor Pattern | Common Part Numbers | Leg 1 (Left) | Leg 2 (Center) | Leg 3 (Right) |
+| :--- | :--- | :---: | :---: | :---: |
+| **American (E-B-C)** | **2N3904, 2N2222, 2N4401** | **Emitter (E)** | **Base (B)** | **Collector (C)** |
+| **European (C-B-E)** | **BC547, BC548, BC337, BC549** | **Collector (C)** | **Base (B)** | **Emitter (E)** |
+| **Asian (E-C-B)** | **S8050, 2SC1815, C945, SS8050** | **Emitter (E)** | **Collector (C)** | **Base (B)** |
+
+---
+
+### Option B: Direct GPIO Drive (Minimalist Bench / Desk Use)
+
+This configuration connects directly to ESP32-C3 GPIO 2 with built-in safety against DC overcurrent and back-EMF spikes:
+
+```
+                           C_block       R_damp
+                          [ 1 uF ]     [ 220 ohm ]
+  ESP32-C3 GPIO 2 ---------[ || ]--------[ \/\/\ ]---------+-----------------+
+  (Default PWM Out)                                        |                 |
+                                                        +------+          +------+
+                                                        |      |          |      |
+                                                     3.5 mH  Inductor  1.5 nF Capacitor
+                                                        |      |          |      |
+                                                        +------+          +------+
+                                                           |                 |
+  ESP32-C3 GND --------------------------------------------+-----------------+
 ```
 
 #### Circuit Analysis & Parameters
@@ -50,42 +124,11 @@ This configuration connects directly to an ESP32-C3 GPIO pin with built-in safet
 * **Pin Current:**
   $$I_{peak} \approx \frac{3.3\text{ V}}{220\,\Omega} \approx \mathbf{15\text{ mA}} \quad (\text{Safe: below ESP32-C3 20 mA maximum})$$
 
-
-### NPN Transistor Booster Circuit (Recommended for 1.0 m+ Range)
-
-This configuration uses any generic small-signal NPN transistor (2N3904, 2N2222, BC547, S8050, 2SC1815, etc.) powered directly from the **5V USB rail**. It isolates the ESP32 silicon and delivers $3\times$ to $5\times$ more magnetic flux for extended range:
-
-```
-                                  +5V (USB / VIN Pin)
-                                    │
-                                    ├───[ 220 ohm ]─── (R_damp)
-                                    │
-                                    ├───┬───────────────┬───┐
-                                    │   │               │   │
-                                    │  [ 3.5 mH ]   [ 1.5 nF ]
-                                    │  (Inductor)   (Capacitor)
-                                    │   │               │   │
-                                    └───┴───────────────┴───┘
-                                                │
-                                                ▼
-                                         [ C ] (Collector)
-  ESP32-C3 GPIO ───[ 1k ohm ]─────────── [ B ]   Generic NPN Transistor
-  (LEDC PWM)       (R_base)              [ E ] (Emitter)
-                                                │
-                                                ▼
-  ESP32-C3 GND ─────────────────────────────────┴─── Common Ground (GND)
-```
-
-#### Why This Works Well:
-1. **Zero Stress on ESP32:** The GPIO pin only provides a safe $I_B \approx 2.6\text{ mA}$ through the $1\text{ k}\Omega$ base resistor.
-2. **5V Swing:** The LC tank swings around the 5V rail rather than 3.3V, pushing significantly more magnetic current through the 3.5 mH inductor.
-3. **Uses Your $220\,\Omega$ Resistor:** The $220\,\Omega$ damping resistor limits peak collector current to a cool, safe $\sim 23\text{ mA}$ while maintaining the same wide $\sim 10\text{ kHz}$ bandwidth.
-4. **Broadcast Range:** Up to **1.0 m – 1.2 m**.
-
+---
 
 ### Breadboard Wiring Layout (NPN Booster Circuit)
 
-> 🎨 **Visual Diagram:** A full vector graphic illustration is available in [breadboard_layout.svg](file:///Users/robertlongbottom/dev/esp32_radio_atomic_clock/breadboard_layout.svg) or viewable in your browser via [breadboard_layout.html](file:///Users/robertlongbottom/dev/esp32_radio_atomic_clock/breadboard_layout.html).
+> 🎨 **Visual Diagram:** A full vector graphic illustration is available in [breadboard_layout.svg](breadboard_layout.svg) or viewable in your browser via [breadboard_layout.html](breadboard_layout.html).
 
 Here is the top-down terminal row mapping for a standard breadboard:
 
@@ -120,10 +163,11 @@ Here is the top-down terminal row mapping for a standard breadboard:
    * Wire ESP32 **5V** (or `VIN`) to the breadboard **(+) Red Rail**.
    * Wire ESP32 **GND** to the breadboard **(-) Blue Rail**.
 2. **NPN Transistor:**
-   * Plug into Rows 10, 11, and 12 (assuming standard E-B-C pinout like 2N3904 / 2N2222):
+   * Plug into Rows 10, 11, and 12 (assuming standard American E-B-C pinout like 2N3904 / 2N2222):
      * **Row 10 = Emitter (E)** $\rightarrow$ Add a short jumper wire from Row 10 to **(-) Blue GND Rail**.
      * **Row 11 = Base (B)** $\rightarrow$ Plug one leg of the **$1\text{ k}\Omega$ resistor** here.
      * **Row 12 = Collector (C)** $\rightarrow$ This is the bottom of the LC tank.
+   * *(If using BC547 or S8050, align according to the Transistor Pinout Quick Reference table above).*
 3. **Base Drive:**
    * Plug the other leg of the **$1\text{ k}\Omega$ resistor** into **Row 8**.
    * Run a jumper wire from **Row 8** to **ESP32 GPIO 2** (LEDC PWM output).
@@ -168,7 +212,10 @@ Here is the top-down terminal row mapping for a standard breadboard:
 * **Direct C Code Portability:** Reuses proven transmission bitstream engines directly from [`kangtastic/timestation`](https://github.com/kangtastic/timestation) (`timesignal.c`, `waveform.h`, `datetime.h`).
 * **Hardware Fractional Divider:** Native access to the ESP32-C3 `LEDC` peripheral via the 80 MHz APB clock:
   $$\text{LEDC Frequency Error} < 0.0005\%$$
-* **Power Management:** Deep sleep with RTC timer wakeup (`esp_deep_sleep_start()`) draws $\sim 5\,\mu\text{A}$.
+* **Dynamic Clock Scaling & Power Management:**
+  * **24/7 Online Standby (80 MHz):** Throttles CPU to 80 MHz and engages 802.11 Modem-Sleep (`WiFi.setSleep(true)`). The web server and mDNS responder (`http://timestation.local`) stay accessible 24/7 while cutting average current draw to ~15–20 mA.
+  * **Broadcast Boost (160 MHz):** Ramps the CPU clock to full speed (160 MHz) and disables Wi-Fi sleep during active transmissions to eliminate timer jitter and ensure clean, stable carrier output.
+  * **Optional Deep Sleep:** Supports true battery-powered deep sleep with RTC timer wakeup (`esp_deep_sleep_start()`) drawing $\sim 5\,\mu\text{A}$.
 * **Zero Jitter:** Deterministic interrupt-driven or hardware-timer pulse modulation without Python Garbage Collection (GC) pauses.
 
 ---
@@ -176,29 +223,41 @@ Here is the top-down terminal row mapping for a standard breadboard:
 ## 6. System Operating Cycle & Power Flow
 
 ```
-[ Wake from Deep Sleep / Power On ]
-              │
-              ▼
-    Check Wakeup Reason ──(First Boot or Config Button Held)──► [ Start AP Mode & Web Server ]
-              │                                                             │
-              ▼ (Scheduled Timer Wakeup)                                    ▼
-       [ Connect Wi-Fi ]                                          [ Configure & Save to NVS ]
-              │                                                             │
-              ▼                                                             ▼
-     [ Sync Time via NTP ]                                          [ Re-enter Deep Sleep ]
-              │
-              ▼
-   [ Turn OFF Wi-Fi Completely ]  <── CRITICAL: Eliminates 2.4 GHz RF hash during broadcast
-              │
-              ▼
-    [ Start LEDC Carrier PWM ]
-    [ Broadcast Signal for 15-30 Min ]
-              │
-              ▼
-   [ Calculate Next Sleep Window ]
-              │
-              ▼
-    [ Enter ESP32 Deep Sleep ] (Draws ~5 uA until next scheduled broadcast)
+[ Power On / Boot ]
+        │
+        ▼
+[ Read Flash Preferences (NVS) ]
+        │
+        ├───(No Saved Wi-Fi)────────► [ Start SoftAP "TimeStation-Setup" ]
+        │                                         │
+        ▼ (Saved Wi-Fi Found)                     ▼
+ [ Connect to Wi-Fi ] ────────────────► [ Web Setup & Config Portal ]
+        │
+        ▼
+ [ Synchronize NTP Time ]
+        │
+        ▼
+ ┌─────────────────────────────────────────────────────────────┐
+ │            24/7 Ultra-Low-Power Standby Mode                │
+ │  • CPU throttled to 80 MHz                                  │
+ │  • 802.11 Modem-Sleep enabled (~15-20 mA)                   │
+ │  • Web Dashboard & mDNS (timestation.local) live 24/7       │
+ │  • FreeRTOS yields idle time slices                         │
+ └──────────────────────────────┬──────────────────────────────┘
+                                │
+          ┌─────────────────────┴─────────────────────┐
+          │                                           │
+          ▼ (Scheduled Time OR "Broadcast Now")       ▼ (User Opens Browser)
+ ┌──────────────────────────────────────────┐  ┌───────────────────────────┐
+ │        Atomic Broadcast Active           │  │    Serve HTTP Web UI      │
+ │  • CPU boosted to 160 MHz (Full Speed)   │  │  • Real-time NTP clock    │
+ │  • Wi-Fi Sleep disabled (clean rail)     │  │  • Station selector       │
+ │  • 50ms tick ISR modulates carrier       │  │  • Offset & duration cfg  │
+ │  • Duration: 5 - 30 minutes              │  └───────────────────────────┘
+ └────────────────────┬─────────────────────┘
+                      │
+                      ▼ (Broadcast Finishes)
+ [ Return to 80 MHz CPU & Modem-Sleep Standby ]
 ```
 
 ---
