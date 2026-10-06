@@ -11,6 +11,8 @@ if os.path.exists(env_file):
                 key, val = line.split("=", 1)
                 key = key.strip()
                 val = val.strip().strip("\"'")
-                # Add as C preprocessor definition: -D KEY="value"
-                env.Append(CPPDEFINES=[(key, env.StringifyMacro(val))])
+                if val.lstrip('-').isdigit():
+                    env.Append(CPPDEFINES=[(key, int(val))])
+                else:
+                    env.Append(CPPDEFINES=[(key, env.StringifyMacro(val))])
                 print(f"[load_env.py] Defined {key}")

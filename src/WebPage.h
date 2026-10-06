@@ -217,7 +217,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
       </div>
       <div class="stat-row">
         <span class="stat-label">Antenna Pin</span>
-        <span class="stat-value">GPIO 2 (LEDC PWM)</span>
+        <span id="antennaPin" class="stat-value">GPIO 2 (LEDC PWM)</span>
       </div>
 
       <button id="btnTransmitNow" class="btn btn-transmit" onclick="toggleTransmit()">⚡ Broadcast Now (Test Mode)</button>
@@ -293,6 +293,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
         document.getElementById('activeStation').innerText = data.stationName;
         document.getElementById('carrierFreq').innerText = data.carrierHz + ' Hz';
         document.getElementById('nextSync').innerText = data.nextSync || 'Disabled';
+        if (data.antennaPin !== undefined) document.getElementById('antennaPin').innerText = 'GPIO ' + data.antennaPin + ' (LEDC PWM)';
         
         isTransmitting = data.transmitting;
         const badge = document.getElementById('statusBadge');

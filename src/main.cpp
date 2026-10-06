@@ -45,7 +45,13 @@
 #endif
 
 // --- Pin Definitions ---
-#define ANTENNA_PIN      2
+#ifndef ANTENNA_PIN
+  #ifdef GPIO_PIN
+    #define ANTENNA_PIN GPIO_PIN
+  #else
+    #define ANTENNA_PIN 2
+  #endif
+#endif
 #define PWM_CHANNEL      0
 #define PWM_RESOLUTION   8
 
@@ -125,6 +131,7 @@ void setup() {
     }
 
     Serial.printf("[Config] Station: %s\n", timeproto_get_station_name(activeStation));
+    Serial.printf("[Config] Antenna Pin: GPIO %d\n", ANTENNA_PIN);
     Serial.printf("[Config] Wi-Fi Target: '%s'\n", wifiSsid.c_str());
     Serial.printf("[Config] Schedule: %02d:%02d, %d min (Enabled: %d)\n",
                   broadcastHour, broadcastMinute, broadcastDurationMin, scheduleEnabled);
@@ -426,6 +433,7 @@ void handleStatus() {
     json += "\"nextSync\":\"" + String(scheduleEnabled ? nextSyncStr : "Disabled") + "\",";
     json += "\"wifiSsid\":\"" + wifiSsid + "\",";
     json += "\"ntpServer\":\"" + ntpServer + "\",";
+    json += "\"antennaPin\":" + String(ANTENNA_PIN) + ",";
     json += "\"transmitting\":" + String(isTransmitting ? "true" : "false");
     json += "}";
 
