@@ -55,6 +55,16 @@
 #define PWM_CHANNEL      0
 #define PWM_RESOLUTION   8
 
+// --- Onboard Status LED (ESP32-C3 SuperMini: GPIO 8, Active LOW) ---
+#ifndef STATUS_LED_PIN
+  #define STATUS_LED_PIN       8
+#endif
+#define LED_PWM_CHANNEL      1
+#define LED_PWM_FREQ         1000  // 1 kHz flicker-free PWM
+#define LED_PWM_RESOLUTION   8     // 8-bit (0-255)
+#define LED_BREATHE_PERIOD   4000  // 4.0 seconds calm breathing cycle
+#define LED_MAX_BRIGHTNESS   75    // Capped at ~30% peak brightness for nightstand comfort
+
 #ifndef DEFAULT_STATION
   #define DEFAULT_STATION 0 // 0 = BPC (China 68.5 kHz)
 #endif
@@ -121,6 +131,7 @@ void handleStatus();
 void handleSave();
 void handleTransmit();
 void handleStop();
+void updateBreathingLED();
 
 // ============================================================================
 // Setup
@@ -135,6 +146,11 @@ void setup() {
     // 1. Initialize Antenna Pin (Carrier Off initially)
     pinMode(ANTENNA_PIN, OUTPUT);
     digitalWrite(ANTENNA_PIN, LOW);
+
+    // Initialize Onboard Status LED (GPIO 8, Active LOW: 255 = OFF)
+    ledcSetup(LED_PWM_CHANNEL, LED_PWM_FREQ, LED_PWM_RESOLUTION);
+    ledcAttachPin(STATUS_LED_PIN, LED_PWM_CHANNEL);
+    ledcWrite(LED_PWM_CHANNEL, 255); // 100% OFF in standby
 
     // 2. Load Settings from Flash (NVS)
     prefs.begin("timestation", false);
@@ -182,7 +198,8 @@ void setup() {
 
         // Run transmission loop until duration expires
         while (isTransmitting) {
-            delay(1000);
+            updateBreathingLED();
+            delay(20);
             time_t nowSec = time(nullptr);
             if (nowSec - transmitStartSec >= transmitDurationSec) {
                 Serial.println("[Schedule] Broadcast window finished!");
@@ -294,6 +311,7 @@ void loop() {
         }
     }
 
+    updateBreathingLED();
     delay(20); // Yields CPU to FreeRTOS power-saving idle thread
 }
 
@@ -352,6 +370,26 @@ void onTickTimer(void* arg) {
     }
 }
 
+// ============================================================================
+// Onboard LED Breathing Pulse (4.0s Calm Nightstand Rhythm)
+// ============================================================================
+void updateBreathingLED() {
+    if (isTransmitting) {
+        uint32_t nowMs = millis();
+        // Phase ranges from 0.0 to 2*PI across the 4000ms period
+        float phase = ((float)(nowMs % LED_BREATHE_PERIOD) / (float)LED_BREATHE_PERIOD) * 2.0f * PI;
+        // Smooth sine wave: (1 - cos(phase)) / 2 goes 0.0 -> 1.0 -> 0.0
+        float factor = (1.0f - cosf(phase)) * 0.5f;
+        // Natural perceptual curve: factor^2
+        uint32_t brightness = (uint32_t)(factor * factor * (float)LED_MAX_BRIGHTNESS);
+        // Active LOW: 255 is completely OFF, 0 is full brightness
+        ledcWrite(LED_PWM_CHANNEL, 255 - brightness);
+    } else {
+        // Completely dark in standby
+        ledcWrite(LED_PWM_CHANNEL, 255);
+    }
+}
+
 void startTransmission(uint32_t durationSec) {
     if (isTransmitting) return;
 
@@ -398,7 +436,8 @@ void stopTransmission() {
 
     ledcWrite(PWM_CHANNEL, 0);
     digitalWrite(ANTENNA_PIN, LOW);
-    Serial.println("[Transmitter] Transmission stopped. Carrier OFF.");
+    ledcWrite(LED_PWM_CHANNEL, 255); // Ensure LED is 100% OFF in standby
+    Serial.println("[Transmitter] Transmission stopped. Carrier & LED OFF.");
 
     // Re-engage Wi-Fi Modem-Sleep for low-power standby (CPU stays at 80 MHz)
     WiFi.setSleep(true);
