@@ -331,14 +331,20 @@ Here is the top-down terminal row mapping for a standard breadboard with the **E
 
 ---
 
-## 7. Web Interface Features
+## 7. Web Interface Features & Multi-Station Carousel
 
 The ESP32-C3 hosts an embedded single-page responsive web dashboard:
-1. **Station Selection:** Dropdown for BPC (68.5 kHz), WWVB (60 kHz), MSF (60 kHz), DCF77 (77.5 kHz), JJY40/60, and Custom.
+1. **Operating Modes:**
+   * **Single Station Mode:** Broadcasts a single chosen station (BPC, WWVB, MSF, DCF77, JJY40, JJY60) for a set duration.
+   * **Multi-Station Carousel Mode ("World Tour"):** Automatically sequences through multiple selected stations during the scheduled broadcast window so all watches in the room sync regardless of which regional home city they are configured for:
+     * Select any combination of stations via checklist (e.g. BPC 68.5 kHz $\rightarrow$ JJY60 60.0 kHz $\rightarrow$ WWVB 60.0 kHz).
+     * Configurable stage duration (e.g. 15 minutes per station $\times$ 3 stations = 45-minute nightly window).
+     * **Clean Minute Boundary Handoff:** The ESP32-C3 hardware LEDC timer retunes carrier frequency dynamically on the fly at the exact `:00` second mark, ensuring no watch receiver encounters truncated minute frames.
+     * Live dashboard displays active carousel stage and real-time countdown timers.
 2. **Timezone Offset:** Manual $\pm 12$ hour adjustment to set any destination timezone on the clock.
 3. **Broadcast Scheduling:** 
-   * *Scheduled Window:* Transmit during clock sync hours (e.g. 02:00 – 02:30 AM), deep sleep otherwise.
-   * *Continuous / Test Mode:* Continuous broadcast for bench testing.
+   * *Scheduled Window:* Transmit during clock sync hours (e.g. 02:00 AM daily), modem-sleep or deep sleep otherwise.
+   * *Manual Test Mode:* On-demand broadcast button for bench testing with live countdown.
 4. **Network Credentials:** Wi-Fi SSID / Password configuration with captive portal fallback.
 5. **NTP Server:** Configurable time server (default: `pool.ntp.org`).
 

@@ -89,6 +89,16 @@
   #define DEFAULT_BROADCAST_DURATION 25 // 25 minutes
 #endif
 
+#ifndef DEFAULT_CAROUSEL_ENABLED
+  #define DEFAULT_CAROUSEL_ENABLED 0
+#endif
+#ifndef DEFAULT_CAROUSEL_MASK
+  #define DEFAULT_CAROUSEL_MASK 0x23 // BPC (0), WWVB (1), JJY60 (5)
+#endif
+#ifndef DEFAULT_CAROUSEL_DURATION
+  #define DEFAULT_CAROUSEL_DURATION 15 // 15 minutes per station
+#endif
+
 // --- Preferences / NVS Storage ---
 Preferences prefs;
 
@@ -102,6 +112,18 @@ int broadcastDurationMin = DEFAULT_BROADCAST_DURATION;
 String wifiSsid = "";
 String wifiPassword = "";
 String ntpServer = "pool.ntp.org";
+
+// --- Carousel Config State ---
+bool carouselEnabled = (DEFAULT_CAROUSEL_ENABLED != 0);
+uint8_t carouselMask = DEFAULT_CAROUSEL_MASK;
+int carouselDurationPerStationMin = DEFAULT_CAROUSEL_DURATION;
+
+// --- Carousel Runtime State ---
+time_station_t carouselStations[STATION_COUNT];
+int carouselStageCount = 1;
+volatile int currentStageIndex = 0;
+uint32_t stageStartSec = 0;
+uint32_t stageDurationSec = 0;
 
 // --- Runtime State ---
 WebServer server(80);
@@ -120,6 +142,7 @@ uint64_t transmitDurationSec = 0;
 esp_timer_handle_t tickTimer = nullptr;
 
 // Forward Declarations
+void buildCarouselStationList();
 void startTransmission(uint32_t durationSec);
 void stopTransmission();
 void setupLEDC(uint32_t freqHz);
@@ -163,6 +186,9 @@ void setup() {
     wifiSsid = prefs.getString("ssid", DEFAULT_WIFI_SSID);
     wifiPassword = prefs.getString("pass", DEFAULT_WIFI_PASS);
     ntpServer = prefs.getString("ntp", DEFAULT_NTP_SERVER);
+    carouselEnabled = prefs.getBool("carEn", (DEFAULT_CAROUSEL_ENABLED != 0));
+    carouselMask = prefs.getUInt("carMask", DEFAULT_CAROUSEL_MASK);
+    carouselDurationPerStationMin = prefs.getInt("carDur", DEFAULT_CAROUSEL_DURATION);
 
     // Fall back to compile-time .env defaults if NVS credentials are blank
     if (wifiSsid.length() == 0 && String(DEFAULT_WIFI_SSID).length() > 0) {
@@ -172,6 +198,8 @@ void setup() {
 
     Serial.printf("[Config] Station: %s\n", timeproto_get_station_name(activeStation));
     Serial.printf("[Config] Antenna Pin: GPIO %d\n", ANTENNA_PIN);
+    Serial.printf("[Config] Carousel Mode: %s (Mask: 0x%02X, %d min/station)\n",
+                  carouselEnabled ? "ENABLED" : "Disabled", carouselMask, carouselDurationPerStationMin);
     Serial.printf("[Config] Wi-Fi Target: '%s'\n", wifiSsid.c_str());
     Serial.printf("[Config] Schedule: %02d:%02d, %d min (Enabled: %d)\n",
                   broadcastHour, broadcastMinute, broadcastDurationMin, scheduleEnabled);
@@ -303,10 +331,18 @@ void loop() {
                 tm_local->tm_yday != lastScheduledBroadcastDay) {
                 
                 lastScheduledBroadcastDay = tm_local->tm_yday;
-                Serial.printf("[Schedule] Starting scheduled broadcast (%d min) for %s at %02d:%02d...\n",
-                              broadcastDurationMin, timeproto_get_station_name(activeStation),
-                              broadcastHour, broadcastMinute);
-                startTransmission(broadcastDurationMin * 60);
+                if (carouselEnabled) {
+                    buildCarouselStationList();
+                    int totalMin = carouselStageCount * carouselDurationPerStationMin;
+                    Serial.printf("[Schedule] Starting scheduled Carousel broadcast (%d min, %d stages) at %02d:%02d...\n",
+                                  totalMin, carouselStageCount, broadcastHour, broadcastMinute);
+                    startTransmission(totalMin * 60);
+                } else {
+                    Serial.printf("[Schedule] Starting scheduled broadcast (%d min) for %s at %02d:%02d...\n",
+                                  broadcastDurationMin, timeproto_get_station_name(activeStation),
+                                  broadcastHour, broadcastMinute);
+                    startTransmission(broadcastDurationMin * 60);
+                }
             }
         }
     }
@@ -343,6 +379,19 @@ void syncNtpTime() {
 // ============================================================================
 // RF Carrier Generation & 50ms Pulse Modulator
 // ============================================================================
+void buildCarouselStationList() {
+    carouselStageCount = 0;
+    for (int i = 0; i < STATION_COUNT; i++) {
+        if (carouselMask & (1 << i)) {
+            carouselStations[carouselStageCount++] = (time_station_t)i;
+        }
+    }
+    if (carouselStageCount == 0) {
+        carouselStations[0] = activeStation;
+        carouselStageCount = 1;
+    }
+}
+
 void setupLEDC(uint32_t freqHz) {
     ledcSetup(PWM_CHANNEL, freqHz, PWM_RESOLUTION);
     ledcAttachPin(ANTENNA_PIN, PWM_CHANNEL);
@@ -352,9 +401,26 @@ void setupLEDC(uint32_t freqHz) {
 void onTickTimer(void* arg) {
     if (!isTransmitting) return;
 
-    // Check if we need to regenerate a new 60-second frame
+    // Check if we need to regenerate a new frame
     if (currentTickIndex >= totalFrameTicks) {
         time_t now = time(nullptr);
+
+        // Check if Carousel stage handoff is due at this clean frame boundary
+        if (carouselEnabled && carouselStageCount > 1) {
+            if ((now - stageStartSec) >= stageDurationSec) {
+                if (currentStageIndex + 1 < carouselStageCount) {
+                    currentStageIndex++;
+                    activeStation = carouselStations[currentStageIndex];
+                    stageStartSec = now;
+                    uint32_t newFreq = timeproto_get_carrier_freq(activeStation);
+                    setupLEDC(newFreq);
+                    Serial.printf("[Carousel] Handoff at :00 to Stage %d/%d: %s (%u Hz)\n",
+                                  currentStageIndex + 1, carouselStageCount,
+                                  timeproto_get_station_name(activeStation), newFreq);
+                }
+            }
+        }
+
         timeproto_generate_frame(activeStation, now, userOffsetHours * 3600, 0,
                                  tickBuffer, &totalFrameTicks);
         currentTickIndex = 0;
@@ -397,6 +463,22 @@ void startTransmission(uint32_t durationSec) {
     WiFi.setSleep(false);
     Serial.println("[Power] Broadcast active at 80 MHz (Wi-Fi sleep paused for rail stability).");
 
+    time_t now = time(nullptr);
+
+    if (carouselEnabled) {
+        buildCarouselStationList();
+        currentStageIndex = 0;
+        activeStation = carouselStations[0];
+        stageDurationSec = (uint32_t)carouselDurationPerStationMin * 60;
+        durationSec = carouselStageCount * stageDurationSec;
+        Serial.printf("[Carousel] Starting Carousel Mode: %d stages (%d min each, total %d min)\n",
+                      carouselStageCount, carouselDurationPerStationMin, (int)(durationSec / 60));
+    } else {
+        carouselStageCount = 1;
+        currentStageIndex = 0;
+        stageDurationSec = durationSec;
+    }
+
     uint32_t carrierFreq = timeproto_get_carrier_freq(activeStation);
     Serial.printf("[Transmitter] Starting %s carrier at %u Hz on GPIO %d\n",
                   timeproto_get_station_name(activeStation), carrierFreq, ANTENNA_PIN);
@@ -404,12 +486,12 @@ void startTransmission(uint32_t durationSec) {
     setupLEDC(carrierFreq);
 
     // Generate initial frame
-    time_t now = time(nullptr);
     timeproto_generate_frame(activeStation, now, userOffsetHours * 3600, 0,
                              tickBuffer, &totalFrameTicks);
     currentTickIndex = 0;
 
     transmitStartSec = now;
+    stageStartSec = now;
     transmitDurationSec = durationSec;
     isTransmitting = true;
 
@@ -484,6 +566,20 @@ void handleStatus() {
     char nextSyncStr[32];
     snprintf(nextSyncStr, sizeof(nextSyncStr), "%02d:%02d (Daily)", broadcastHour, broadcastMinute);
 
+    int stageRemainSec = 0;
+    int totalRemainSec = 0;
+    if (isTransmitting) {
+        time_t nowSec = now;
+        if (nowSec >= stageStartSec && stageDurationSec > 0) {
+            uint32_t elapsed = nowSec - stageStartSec;
+            stageRemainSec = (elapsed < stageDurationSec) ? (stageDurationSec - elapsed) : 0;
+        }
+        if (nowSec >= transmitStartSec && transmitDurationSec > 0) {
+            uint32_t elapsed = nowSec - transmitStartSec;
+            totalRemainSec = (elapsed < transmitDurationSec) ? (transmitDurationSec - elapsed) : 0;
+        }
+    }
+
     String json = "{";
     json += "\"time\":\"" + String(timeStr) + "\",";
     json += "\"station\":" + String((int)activeStation) + ",";
@@ -497,7 +593,14 @@ void handleStatus() {
     json += "\"wifiSsid\":\"" + wifiSsid + "\",";
     json += "\"ntpServer\":\"" + ntpServer + "\",";
     json += "\"antennaPin\":" + String(ANTENNA_PIN) + ",";
-    json += "\"transmitting\":" + String(isTransmitting ? "true" : "false");
+    json += "\"transmitting\":" + String(isTransmitting ? "true" : "false") + ",";
+    json += "\"carouselEnabled\":" + String(carouselEnabled ? "true" : "false") + ",";
+    json += "\"carouselMask\":" + String(carouselMask) + ",";
+    json += "\"carouselDurationMin\":" + String(carouselDurationPerStationMin) + ",";
+    json += "\"carouselStage\":" + String(currentStageIndex + 1) + ",";
+    json += "\"carouselTotalStages\":" + String(carouselStageCount) + ",";
+    json += "\"stageRemainSec\":" + String(stageRemainSec) + ",";
+    json += "\"totalRemainSec\":" + String(totalRemainSec);
     json += "}";
 
     server.send(200, "application/json", json);
@@ -547,6 +650,26 @@ void handleSave() {
         prefs.putInt("bcMin", broadcastMinute);
     }
 
+    // Carousel settings
+    int carEnIdx = body.indexOf("\"carouselEnabled\":");
+    if (carEnIdx != -1) {
+        carouselEnabled = body.substring(carEnIdx + 18).startsWith("true");
+        prefs.putBool("carEn", carouselEnabled);
+    }
+
+    int carMaskIdx = body.indexOf("\"carouselMask\":");
+    if (carMaskIdx != -1) {
+        carouselMask = (uint8_t)body.substring(carMaskIdx + 15).toInt();
+        prefs.putUInt("carMask", carouselMask);
+    }
+
+    int carDurIdx = body.indexOf("\"carouselDurationMin\":");
+    if (carDurIdx != -1) {
+        carouselDurationPerStationMin = body.substring(carDurIdx + 22).toInt();
+        if (carouselDurationPerStationMin < 1) carouselDurationPerStationMin = 15;
+        prefs.putInt("carDur", carouselDurationPerStationMin);
+    }
+
     int ssidIdx = body.indexOf("\"wifiSsid\":\"");
     if (ssidIdx != -1) {
         int endSsid = body.indexOf("\"", ssidIdx + 12);
@@ -579,7 +702,12 @@ void handleSave() {
 }
 
 void handleTransmit() {
-    startTransmission(300); // 5 minutes test mode
+    uint32_t dur = broadcastDurationMin * 60;
+    if (carouselEnabled) {
+        buildCarouselStationList();
+        dur = carouselStageCount * carouselDurationPerStationMin * 60;
+    }
+    startTransmission(dur);
     server.send(200, "application/json", "{\"status\":\"transmitting\"}");
 }
 

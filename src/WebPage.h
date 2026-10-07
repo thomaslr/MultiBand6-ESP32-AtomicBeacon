@@ -135,6 +135,71 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
     select:focus, input:focus {
       border-color: var(--accent);
     }
+    .mode-toggle {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+      background: #0f172a;
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .mode-btn {
+      flex: 1;
+      padding: 8px 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-muted);
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+    }
+    .mode-btn.active {
+      background: var(--accent);
+      color: #0f172a;
+    }
+    .carousel-checklist {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .carousel-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: #0f172a;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .carousel-item:hover {
+      border-color: var(--accent);
+    }
+    .carousel-item input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+    }
+    .carousel-item span {
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 500;
+    }
+    .carousel-calc {
+      font-size: 12px;
+      font-weight: 600;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
     .btn {
       display: inline-block;
       width: 100%;
@@ -204,12 +269,24 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
       </div>
       <div id="liveClock" class="clock-display">--:--:--</div>
       <div class="stat-row">
+        <span class="stat-label">Operating Mode</span>
+        <span id="modeDisplay" class="stat-value">Single Station</span>
+      </div>
+      <div class="stat-row">
         <span class="stat-label">Active Station</span>
         <span id="activeStation" class="stat-value">BPC (China 68.5 kHz)</span>
       </div>
       <div class="stat-row">
         <span class="stat-label">Carrier Frequency</span>
         <span id="carrierFreq" class="stat-value">68,500 Hz</span>
+      </div>
+      <div id="stageRow" class="stat-row" style="display: none;">
+        <span class="stat-label">Carousel Stage</span>
+        <span id="stageDisplay" class="stat-value">Stage 1 of 3</span>
+      </div>
+      <div id="countdownRow" class="stat-row" style="display: none;">
+        <span class="stat-label">Time Remaining</span>
+        <span id="countdownDisplay" class="stat-value">--:--</span>
       </div>
       <div class="stat-row">
         <span class="stat-label">Next Scheduled Sync</span>
@@ -225,19 +302,75 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
 
     <!-- Configuration Form -->
     <form id="configForm" class="card" onsubmit="saveConfig(event)">
-      <div class="card-title">STATION & SCHEDULE CONFIGURATION</div>
-
-      <div class="form-group">
-        <label for="station">Time Signal Station</label>
-        <select id="station" name="station" onchange="updateFreqDisplay()">
-          <option value="0">🇨🇳 BPC — China (68.5 kHz)</option>
-          <option value="1">🇺🇸 WWVB — USA (60.0 kHz)</option>
-          <option value="2">🇬🇧 MSF — United Kingdom (60.0 kHz)</option>
-          <option value="3">🇩🇪 DCF77 — Germany (77.5 kHz)</option>
-          <option value="4">🇯🇵 JJY40 — Japan East (40.0 kHz)</option>
-          <option value="5">🇯🇵 JJY60 — Japan West (60.0 kHz)</option>
-        </select>
+      <div class="card-title">TRANSMISSION MODE</div>
+      <div class="mode-toggle">
+        <button type="button" id="btnModeSingle" class="mode-btn active" onclick="setMode(false)">Single Station</button>
+        <button type="button" id="btnModeCarousel" class="mode-btn" onclick="setMode(true)">🔄 Multi-Station Carousel</button>
       </div>
+
+      <!-- Single Station Section -->
+      <div id="singleStationSection">
+        <div class="form-group">
+          <label for="station">Time Signal Station</label>
+          <select id="station" name="station">
+            <option value="0">🇨🇳 BPC — China (68.5 kHz)</option>
+            <option value="1">🇺🇸 WWVB — USA (60.0 kHz)</option>
+            <option value="2">🇬🇧 MSF — United Kingdom (60.0 kHz)</option>
+            <option value="3">🇩🇪 DCF77 — Germany (77.5 kHz)</option>
+            <option value="4">🇯🇵 JJY40 — Japan East (40.0 kHz)</option>
+            <option value="5">🇯🇵 JJY60 — Japan West (60.0 kHz)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="broadcastDuration">Broadcast Duration (Minutes)</label>
+          <input type="number" id="broadcastDuration" name="broadcastDuration" value="25" min="5" max="120">
+        </div>
+      </div>
+
+      <!-- Carousel Mode Section -->
+      <div id="carouselSection" style="display: none;">
+        <div class="form-group">
+          <label>Carousel Sequence (Select Stations to Rotate)</label>
+          <div class="carousel-checklist">
+            <label class="carousel-item">
+              <input type="checkbox" id="car_0" value="0" onchange="updateCarouselCalc()">
+              <span>🇨🇳 BPC — China (68.5 kHz)</span>
+            </label>
+            <label class="carousel-item">
+              <input type="checkbox" id="car_5" value="5" onchange="updateCarouselCalc()">
+              <span>🇯🇵 JJY60 — Japan West (60.0 kHz)</span>
+            </label>
+            <label class="carousel-item">
+              <input type="checkbox" id="car_1" value="1" onchange="updateCarouselCalc()">
+              <span>🇺🇸 WWVB — USA (60.0 kHz)</span>
+            </label>
+            <label class="carousel-item">
+              <input type="checkbox" id="car_4" value="4" onchange="updateCarouselCalc()">
+              <span>🇯🇵 JJY40 — Japan East (40.0 kHz)</span>
+            </label>
+            <label class="carousel-item">
+              <input type="checkbox" id="car_2" value="2" onchange="updateCarouselCalc()">
+              <span>🇬🇧 MSF — United Kingdom (60.0 kHz)</span>
+            </label>
+            <label class="carousel-item">
+              <input type="checkbox" id="car_3" value="3" onchange="updateCarouselCalc()">
+              <span>🇩🇪 DCF77 — Germany (77.5 kHz)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="carouselDurationMin">Duration Per Station (Minutes)</label>
+          <input type="number" id="carouselDurationMin" name="carouselDurationMin" value="15" min="5" max="60" oninput="updateCarouselCalc()">
+        </div>
+
+        <div id="carouselCalcNotice" class="carousel-calc">
+          ⏱ Total Carousel Duration: 45 minutes (3 stations × 15 min)
+        </div>
+      </div>
+
+      <div class="card-title" style="margin-top: 20px;">SCHEDULE & TIME SETTINGS</div>
 
       <div class="form-group">
         <label for="offsetHours">Custom Time Offset (Hours)</label>
@@ -247,17 +380,12 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
 
       <div class="checkbox-group">
         <input type="checkbox" id="scheduleEnabled" name="scheduleEnabled" checked>
-        <label for="scheduleEnabled">Enable Daily Broadcast Schedule (Web Dashboard Always Online)</label>
+        <label for="scheduleEnabled">Enable Daily Scheduled Broadcast</label>
       </div>
 
       <div class="form-group">
         <label for="broadcastTime">Daily Broadcast Start Time (Local)</label>
         <input type="time" id="broadcastTime" name="broadcastTime" value="02:00">
-      </div>
-
-      <div class="form-group">
-        <label for="broadcastDuration">Broadcast Duration (Minutes)</label>
-        <input type="number" id="broadcastDuration" name="broadcastDuration" value="20" min="5" max="120">
       </div>
 
       <div class="card-title" style="margin-top: 20px;">NETWORK SETTINGS</div>
@@ -284,6 +412,62 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
 
   <script>
     let isTransmitting = false;
+    let carouselMode = false;
+
+    function setMode(isCarousel) {
+      carouselMode = isCarousel;
+      document.getElementById('btnModeSingle').classList.toggle('active', !isCarousel);
+      document.getElementById('btnModeCarousel').classList.toggle('active', isCarousel);
+      document.getElementById('singleStationSection').style.display = isCarousel ? 'none' : 'block';
+      document.getElementById('carouselSection').style.display = isCarousel ? 'block' : 'none';
+      updateCarouselCalc();
+    }
+
+    function getCarouselMask() {
+      let mask = 0;
+      for (let i = 0; i < 6; i++) {
+        const cb = document.getElementById('car_' + i);
+        if (cb && cb.checked) mask |= (1 << i);
+      }
+      return mask;
+    }
+
+    function setCarouselMask(mask) {
+      for (let i = 0; i < 6; i++) {
+        const cb = document.getElementById('car_' + i);
+        if (cb) cb.checked = (mask & (1 << i)) !== 0;
+      }
+      updateCarouselCalc();
+    }
+
+    function updateCarouselCalc() {
+      let count = 0;
+      for (let i = 0; i < 6; i++) {
+        const cb = document.getElementById('car_' + i);
+        if (cb && cb.checked) count++;
+      }
+      const dur = parseInt(document.getElementById('carouselDurationMin').value) || 15;
+      const total = count * dur;
+      const notice = document.getElementById('carouselCalcNotice');
+      if (notice) {
+        if (count === 0) {
+          notice.innerText = '⚠️ Please select at least one station for the carousel.';
+          notice.style.borderColor = '#ef4444';
+          notice.style.color = '#fca5a5';
+        } else {
+          notice.innerText = `⏱ Total Carousel Duration: ${total} minutes (${count} stations × ${dur} min)`;
+          notice.style.borderColor = 'rgba(56, 189, 248, 0.25)';
+          notice.style.color = '#38bdf8';
+        }
+      }
+    }
+
+    function formatSec(s) {
+      if (!s || s <= 0) return '0:00';
+      const m = Math.floor(s / 60);
+      const sec = s % 60;
+      return `${m}:${sec < 10 ? '0' : ''}${sec}`;
+    }
 
     async function loadStatus() {
       try {
@@ -291,16 +475,44 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
         const data = await res.json();
         document.getElementById('liveClock').innerText = data.time || '--:--:--';
         document.getElementById('activeStation').innerText = data.stationName;
-        document.getElementById('carrierFreq').innerText = data.carrierHz + ' Hz';
+        document.getElementById('carrierFreq').innerText = (data.carrierHz || 0).toLocaleString() + ' Hz';
         document.getElementById('nextSync').innerText = data.nextSync || 'Disabled';
-        if (data.antennaPin !== undefined) document.getElementById('antennaPin').innerText = 'GPIO ' + data.antennaPin + ' (LEDC PWM)';
-        
+        if (data.antennaPin !== undefined) {
+          document.getElementById('antennaPin').innerText = 'GPIO ' + data.antennaPin + ' (LEDC PWM)';
+        }
+
+        // Mode & Stage display
+        const isCar = data.carouselEnabled;
+        document.getElementById('modeDisplay').innerText = isCar ? '🔄 Multi-Station Carousel' : 'Single Station';
+
+        const stageRow = document.getElementById('stageRow');
+        const countRow = document.getElementById('countdownRow');
         isTransmitting = data.transmitting;
+
+        if (isTransmitting) {
+          if (isCar && data.carouselTotalStages > 1) {
+            stageRow.style.display = 'flex';
+            document.getElementById('stageDisplay').innerText = `Stage ${data.carouselStage} of ${data.carouselTotalStages} (${data.stationName})`;
+          } else {
+            stageRow.style.display = 'none';
+          }
+
+          countRow.style.display = 'flex';
+          if (isCar && data.carouselTotalStages > 1) {
+            document.getElementById('countdownDisplay').innerText = `Stage: ${formatSec(data.stageRemainSec)} • Total: ${formatSec(data.totalRemainSec)}`;
+          } else {
+            document.getElementById('countdownDisplay').innerText = `${formatSec(data.totalRemainSec)} remaining`;
+          }
+        } else {
+          stageRow.style.display = 'none';
+          countRow.style.display = 'none';
+        }
+        
         const badge = document.getElementById('statusBadge');
         const btn = document.getElementById('btnTransmitNow');
         if (isTransmitting) {
           badge.className = 'status-badge transmitting';
-          badge.innerText = '⚡ BROADCASTING';
+          badge.innerText = isCar ? `⚡ CAROUSEL (${data.carouselStage}/${data.carouselTotalStages})` : '⚡ BROADCASTING';
           btn.className = 'btn btn-stop';
           btn.innerText = '⏹ Stop Broadcast';
         } else {
@@ -319,6 +531,15 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
           document.getElementById('broadcastDuration').value = data.broadcastDuration;
           document.getElementById('wifiSsid').value = data.wifiSsid || '';
           document.getElementById('ntpServer').value = data.ntpServer || 'pool.ntp.org';
+
+          if (data.carouselDurationMin) {
+            document.getElementById('carouselDurationMin').value = data.carouselDurationMin;
+          }
+          if (data.carouselMask !== undefined) {
+            setCarouselMask(data.carouselMask);
+          }
+          setMode(!!data.carouselEnabled);
+
           document.getElementById('station').dataset.loaded = 'true';
         }
       } catch (e) {
@@ -342,6 +563,9 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
         scheduleEnabled: document.getElementById('scheduleEnabled').checked,
         broadcastTime: formData.get('broadcastTime'),
         broadcastDuration: parseInt(formData.get('broadcastDuration')),
+        carouselEnabled: carouselMode,
+        carouselMask: getCarouselMask(),
+        carouselDurationMin: parseInt(document.getElementById('carouselDurationMin').value) || 15,
         wifiSsid: formData.get('wifiSsid'),
         wifiPassword: formData.get('wifiPassword'),
         ntpServer: formData.get('ntpServer')
