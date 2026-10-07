@@ -167,19 +167,20 @@ Here is the top-down terminal row mapping for a standard breadboard with the **E
    07:    [ . . . . . ] ── [        ] ── [ IO1 ] [ . . . . ]          │
    08:    [ . . . . . ] ── [        ] ── [ IO0 ] [ . . . . ]          │
                                                                       │
-   11:    [ . . . . . ]                  [ . . . . . ] ── Transistor EMITTER (E) ── Wire to (-) GND
-   12:    [ . . . . . ]                  [ . . . . . ] ── Transistor BASE (B) ◄─────┘
-   13:    [ . . . . . ]                  [ . . . . . ] ── Transistor COLLECTOR (C)
+   11:    [ . . . . . ]                  [ . . . . . ] ── C1815 BASE (B, Pin 3) ◄─┘ (Closest to IO2!)
+   12:    [ . . . . . ]                  [ . . . . . ] ── C1815 COLLECTOR (C, Pin 2)
                                                │
                                        ┌───────┴───────┐
-                                       │ 3.5mH Inductor│  (Parallel LC Tank)
-                                       │ 1.5nF Cap     │
+                                       │ 3.5mH Inductor│  (Parallel LC Tank: Rows 12–16)
+                                       │ 1.5nF Cap     │  (Col F: Cap, Col H: Inductor)
                                        └───────┬───────┘
                                                │
-   17:    [ . . . . . ]                  [ . . . . . ]
+   13:    [ . . . . . ]                  [ . . . . . ] ── C1815 EMITTER (E, Pin 1) ── Wire to (-) Blue GND
+   ...
+   16:    [ . . . . . ]                  [ . . . . . ] ── LC Tank High Side
                                                │
                                          [ 220 ohm ]   ── R_damp connects directly
-                                               │          from Row 17 to (+) 5V Rail
+                                               │          from Row 16 to (+) 5V Rail
   ────────────────────────────────────────────────────────────────────────
 ```
 
@@ -191,21 +192,21 @@ Here is the top-down terminal row mapping for a standard breadboard with the **E
 2. **Power Rails:**
    * Add a short red jumper wire from **Row 1 (Col G)** to the **(+) Red Rail**.
    * Add a short black jumper wire from **Row 2 (Col G)** to the **(-) Blue Rail**.
-3. **NPN Transistor:**
-   * Plug into **Rows 11, 12, and 13** in Column G (standard 2N3904 / 2N2222 E-B-C pinout):
-     * **Row 11 = Emitter (E)** $\rightarrow$ Add a short black jumper from Row 11 (Col H) to **(-) Blue GND Rail**.
-     * **Row 12 = Base (B)** $\rightarrow$ Receives base drive from the $1\text{ k}\Omega$ resistor.
-     * **Row 13 = Collector (C)** $\rightarrow$ Connects to the bottom of the LC tank.
+3. **C1815 NPN Transistor (JIS E-C-B Pinout):**
+   * Plug into **Rows 11, 12, and 13** in Column G with the **flat printed face facing right** (curved dome to the left):
+     * **Row 11 = Base (B, Pin 3)** $\rightarrow$ Closest to GPIO 2; receives base drive from the $1\text{ k}\Omega$ resistor.
+     * **Row 12 = Collector (C, Pin 2)** $\rightarrow$ Switched output; connects to the parallel LC tank low side.
+     * **Row 13 = Emitter (E, Pin 1)** $\rightarrow$ Add a short black jumper from Row 13 (Col I) to the **(-) Blue GND Rail**.
+   *(Note: If using a 2N2222 / 2N3904 with American E-B-C pinout instead, the middle pin is Base on Row 12, Collector is Row 13, and Emitter is Row 11).*
 4. **Base Drive Resistor ($1\text{ k}\Omega$):**
    * Plug one leg of the **$1\text{ k}\Omega$ resistor** into **Row 6 (Col I)** (directly taps ESP32 GPIO 2).
-   * Plug the other leg into **Row 12 (Col I)** (directly taps the transistor Base). No loose wires required!
+   * Plug the other leg into **Row 11 (Col I)** (directly taps the transistor Base). No loose wires required!
 5. **LC Tank (Parallel Inductor + Capacitor):**
-   * Plug the **1.5 nF Capacitor** across **Row 13 (Col F)** and **Row 17 (Col F)** (inner position, towards center ravine for clearance).
-   * Plug the **3.5 mH Inductor** across **Row 13 (Col H)** and **Row 17 (Col H)** (outer position, nearer breadboard edge for maximum RF radiation & easy watch placement).
+   * Plug the **1.5 nF Capacitor** across **Row 12 (Col F)** and **Row 16 (Col F)** (inner position, towards center ravine for clearance).
+   * Plug the **3.5 mH Inductor** across **Row 12 (Col H)** and **Row 16 (Col H)** (outer position, nearer breadboard edge for maximum RF radiation & easy watch placement).
 6. **Damping Resistor ($220\,\Omega$):**
-   * Plug one leg of the **$220\,\Omega$ resistor** into **Row 17 (Col J)**.
+   * Plug one leg of the **$220\,\Omega$ resistor** into **Row 16 (Col J)**.
    * Plug the other leg directly into the **(+) Red 5V Rail**.
-
 ---
 
 
