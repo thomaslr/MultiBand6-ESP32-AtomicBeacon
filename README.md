@@ -15,11 +15,12 @@ It's still under testing.
 | Component | Value / Specification | Role in Circuit | Rationale / Notes |
 | :--- | :--- | :--- | :--- |
 | **Microcontroller** | **ESP32-C3-Mini** | Core Controller & Carrier Generator | Single-core 32-bit RISC-V (160 MHz), hardware LEDC PWM with fractional clock divider, RTC timer, Wi-Fi 4, BLE 5. |
+| **NPN Transistor** | **C1815 (2SC1815)** | Power Switch / RF Driver (Option A) | Small-signal NPN transistor (TO-92 package, E-C-B pinout) switching the LC tank at 5V for extended 1.0 m+ range. *(Note: You could also use a 2p2222 / 2N2222, but that transistor's different E-B-C pinout must be respected!)* |
+| **Base Resistor ($R_{base}$)** | **$1\text{ k}\Omega$ (1/4 W)** | Transistor Base Drive (Option A) | Connects between GPIO 2 and C1815 Base (Pin 3). Limits base drive current to a safe $\sim 2.6\text{ mA}$ for saturation switching. |
 | **Inductor ($L$)** | **3.5 mH (16×18 mm)** | Magnetic Antenna ($H$-field radiator) | "I-Type" drum/bobbin core power inductor. Open magnetic circuit allows magnetic dipole flux lines to radiate into the room. Low DC resistance. |
 | **Tuning Capacitor ($C$)** | **1.5 nF (1500 pF / code `152`)** | Parallel LC Tank Resonator | Metallized Film (CBB / Polypropylene / Polyester) or C0G/NP0 ceramic. Rated $\ge 50\text{V}$. |
-| **Damping Resistor ($R_{damp}$)** | **$220\,\Omega$ (1/4 W)** | Bandwidth Broadening & Safety Current Limiter | Lowers tank $Q$ to $\sim 6.5$, broadening bandwidth to $\sim 10\text{ kHz}$. Limits peak GPIO current to $\sim 15\text{ mA}$ (well below the ESP32-C3 20 mA pin limit). |
-| **DC Blocking Cap ($C_{block}$)** | **$1\,\mu\text{F}$ (or $100\text{ nF}$)** | DC Isolation & GPIO Protection | Multi-layer ceramic (MLCC) or film capacitor in series with GPIO. Completely blocks DC current so pin cannot burn out if stuck `HIGH`. |
-| *(Optional Driver)* | **2N2222 NPN** or **L9110S H-Bridge** | Extended Range Booster | Optional booster to drive the tank at 5V / 10V peak-to-peak for $> 1.0\text{ m}$ range. |
+| **Damping Resistor ($R_{damp}$)** | **$220\,\Omega$ (1/4 W)** | Bandwidth Broadening & Safety Current Limiter | Lowers tank $Q$ to $\sim 6.5$, broadening bandwidth to $\sim 10\text{ kHz}$. Limits peak current to $\approx 23\text{ mA}$ in transistor booster or $\approx 15\text{ mA}$ in direct GPIO drive. |
+| **DC Blocking Cap ($C_{block}$)** | **$1\,\mu\text{F}$ (or $100\text{ nF}$)** | DC Isolation & GPIO Protection (Option B) | Only required if running Option B (Direct GPIO Drive without transistor). Completely blocks DC current so pin cannot burn out if stuck `HIGH`. |
 
 ---
 
@@ -31,9 +32,9 @@ The firmware defaults to **GPIO 2** for the antenna carrier output (`#define ANT
 
 | Board Pin | ESP32-C3 Signal | Role | Circuit Connection |
 | :--- | :--- | :--- | :--- |
-| **GPIO 2** | `IO2` (LEDC Ch 0) | **Default RF Carrier Out** | Connects to base resistor ($1\text{ k}\Omega$) or DC-blocking cap ($1\,\mu\text{F}$) |
-| **5V / VIN** | `VBUS` (USB 5V) | Primary Power Rail | Supplies the transistor booster circuit & damping resistor |
-| **GND** | `GND` | Common Ground Return | Connects to transistor emitter and breadboard ground rail |
+| **GPIO 2** | `IO2` (LEDC Ch 0) | **Default RF Carrier Out** | Connects to base resistor ($1\text{ k}\Omega$) driving C1815 Base (Pin 3), or DC-blocking cap ($1\,\mu\text{F}$) for direct GPIO |
+| **5V / VIN** | `VBUS` (USB 5V) | Primary Power Rail | Supplies the C1815 booster circuit & damping resistor |
+| **GND** | `GND` | Common Ground Return | Connects to C1815 transistor Emitter (Pin 1) and breadboard ground rail |
 
 > **Why GPIO 2?**
 > * **LEDC Peripheral:** Native hardware routing to LEDC channel 0 with fractional divider clocking.
@@ -70,9 +71,9 @@ The firmware defaults to **GPIO 2** for the antenna carrier output (`#define ANT
 
 ---
 
-### Option A: NPN Transistor Booster Circuit (Recommended for 1.0 m+ Range)
+### Option A: C1815 NPN Transistor Booster Circuit (Recommended for 1.0 m+ Range)
 
-This configuration uses any generic small-signal NPN bipolar junction transistor (BJT) powered directly from the **5V USB rail**. It isolates the ESP32 silicon and delivers $3\times$ to $5\times$ more magnetic flux for extended range:
+This configuration uses the **C1815 (2SC1815) NPN** transistor powered directly from the **5V USB rail**. It isolates the ESP32 silicon and delivers $3\times$ to $5\times$ more magnetic flux for extended range:
 
 ```
                                   +5V (from ESP32 5V / VIN Pin)
@@ -87,9 +88,9 @@ This configuration uses any generic small-signal NPN bipolar junction transistor
                                     └───┴───────────────┴───┘
                                                 │
                                                 ▼
-                                         [ C ] (Collector)
-  ESP32-C3 GPIO 2 ──[ 1k ohm ]────────── [ B ]   Generic NPN Transistor
-  (Default PWM Out) (R_base)             [ E ] (Emitter)
+                                         [ C ] Collector (Pin 2)
+  ESP32-C3 GPIO 2 ──[ 1k ohm ]────────── [ B ] Base (Pin 3)       C1815 NPN Transistor
+  (Default PWM Out) (R_base)             [ E ] Emitter (Pin 1)
                                                 │
                                                 ▼
   ESP32-C3 GND ─────────────────────────────────┴─── Common Ground (GND)
@@ -101,15 +102,51 @@ This configuration uses any generic small-signal NPN bipolar junction transistor
 3. **Uses Your $220\,\Omega$ Resistor:** The $220\,\Omega$ damping resistor limits peak collector current to a cool, safe $\approx 23\text{ mA}$ while maintaining the broad $\sim 10.7\text{ kHz}$ bandwidth so 68.5 kHz BPC resonates smoothly.
 4. **Broadcast Range:** Up to **1.0 m – 1.2 m**.
 
-#### Transistor Pinout Quick Reference (TO-92 Package)
+#### C1815 Transistor Pinout & Pinout Connections (TO-92 Package)
 
-When using standard through-hole transistors from your parts drawer, identify the pin sequence looking at the **flat printed face** with the legs pointing down:
+The circuit is designed specifically around the **C1815 (2SC1815)** small-signal NPN transistor.
 
-| Transistor Pattern | Common Part Numbers | Leg 1 (Left) | Leg 2 (Center) | Leg 3 (Right) |
-| :--- | :--- | :---: | :---: | :---: |
-| **American (E-B-C)** | **2N3904, 2N2222, 2N4401** | **Emitter (E)** | **Base (B)** | **Collector (C)** |
-| **European (C-B-E)** | **BC547, BC548, BC337, BC549** | **Collector (C)** | **Base (B)** | **Emitter (E)** |
-| **Asian (E-C-B)** | **S8050, 2SC1815, C945, SS8050** | **Emitter (E)** | **Collector (C)** | **Base (B)** |
+Looking at the **flat printed face** (labeled "C1815") with the leads pointing downwards, the pinout follows the standard Asian / JIS **E-C-B** configuration:
+
+```
+          TO-92 Package (Front View)
+               ┌───────────┐
+               │   C1815   │   <── Flat Printed Face
+               │   GR 331  │
+               └─┬───┬───┬─┘
+                 │   │   │
+                 1   2   3
+                 E   C   B
+```
+
+| Pin # | Lead Name | Circuit Function | Breadboard Connection |
+| :---: | :--- | :--- | :--- |
+| **Pin 1 (Left)** | **Emitter (E)** | Common Ground Return | Connects directly to **(-) Blue GND Rail** (Row 13) |
+| **Pin 2 (Center)** | **Collector (C)** | Switched LC Tank Low Side | Connects to **Row 12** (bottom of 3.5 mH inductor & 1.5 nF cap) |
+| **Pin 3 (Right)** | **Base (B)** | RF Carrier PWM Input | Connects to **Row 11** (receives drive from GPIO 2 via $1\text{ k}\Omega$ resistor) |
+
+> [!NOTE]
+> **Orientation Tip:** Because **Base is Pin 3 (Right)** on the C1815, mounting the transistor with its flat face facing right puts Pin 3 (Base) at **Row 11**, directly adjacent to ESP32 GPIO 2 (Row 6). This allows the $1\text{ k}\Omega$ base resistor to bridge Rows 6 and 11 neatly without any crossing wires.
+
+> [!WARNING]
+> **Can you use a 2p2222 (2N2222 / PN2222) instead?**
+>
+> You **can** use a **2p2222** (commonly labeled **2N2222** or **PN2222**) NPN transistor if a C1815 is unavailable, **BUT that transistor's completely different pinout must be respected!**
+>
+> * **C1815 (Asian / JIS):** `Pin 1 = Emitter (E) | Pin 2 = Collector (C) | Pin 3 = Base (B)` — **E - C - B**
+> * **2p2222 / 2N2222 (American / JEDEC TO-92):** `Pin 1 = Emitter (E) | Pin 2 = Base (B) | Pin 3 = Collector (C)` — **E - B - C**
+>
+> **Crucial wiring differences to respect when using 2p2222:**
+> 1. **Base pin location is swapped:** On a 2p2222, **Base is the middle pin (Pin 2)** instead of Pin 3. The $1\text{ k}\Omega$ base resistor from GPIO 2 must be routed to **Pin 2 (Center)**.
+> 2. **Collector pin location is swapped:** On a 2p2222, **Collector is the right pin (Pin 3)** instead of Pin 2. The LC tank low side must be routed to **Pin 3 (Right)**.
+> 3. **Emitter:** Pin 1 (Left) remains Emitter (GND) on both transistors.
+>
+> If you drop a 2p2222 / 2N2222 directly into the breadboard using the C1815 layout without adjusting the pin wiring, the Base and Collector will be reversed, the transistor will not switch, and the beacon will fail to broadcast.
+
+| Transistor Model | Pinout Standard | Pin 1 (Left) | Pin 2 (Center) | Pin 3 (Right) | Required Wiring in this Circuit |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **C1815 (Default)** | **JIS (E-C-B)** | **Emitter (E)** | **Collector (C)** | **Base (B)** | Pin 1 $\rightarrow$ GND, Pin 2 $\rightarrow$ LC Tank (Row 12), Pin 3 $\rightarrow$ $1\text{ k}\Omega$ to GPIO 2 (Row 11) |
+| **2p2222 / 2N2222 (Alternative)** | **JEDEC (E-B-C)** | **Emitter (E)** | **Base (B)** | **Collector (C)** | Pin 1 $\rightarrow$ GND, Pin 2 $\rightarrow$ $1\text{ k}\Omega$ to GPIO 2, Pin 3 $\rightarrow$ LC Tank *(Pinout must be respected!)* |
 
 ---
 
@@ -146,7 +183,7 @@ This configuration connects directly to ESP32-C3 GPIO 2 with built-in safety aga
 
 ---
 
-### Breadboard Wiring Layout (NPN Booster Circuit)
+### Breadboard Wiring Layout (C1815 NPN Booster Circuit)
 
 > 🎨 **Visual Diagram:** A full vector graphic illustration is available in [breadboard_layout.svg](breadboard_layout.svg) or viewable in your browser via [breadboard_layout.html](breadboard_layout.html).
 
@@ -197,10 +234,11 @@ Here is the top-down terminal row mapping for a standard breadboard with the **E
      * **Row 11 = Base (B, Pin 3)** $\rightarrow$ Closest to GPIO 2; receives base drive from the $1\text{ k}\Omega$ resistor.
      * **Row 12 = Collector (C, Pin 2)** $\rightarrow$ Switched output; connects to the parallel LC tank low side.
      * **Row 13 = Emitter (E, Pin 1)** $\rightarrow$ Add a short black jumper from Row 13 (Col I) to the **(-) Blue GND Rail**.
-   *(Note: If using a 2N2222 / 2N3904 with American E-B-C pinout instead, the middle pin is Base on Row 12, Collector is Row 13, and Emitter is Row 11).*
+   > [!NOTE]
+   > **Note on substituting a 2p2222 (2N2222 / PN2222):** You could use a 2p2222 / 2N2222 instead, but you must respect that transistor's different **E-B-C** pinout: its center pin (Pin 2) is Base and its right pin (Pin 3) is Collector. If substituted, the $1\text{ k}\Omega$ resistor from GPIO 2 must go to the center pin (Base), and the LC tank must connect to the right pin (Collector).
 4. **Base Drive Resistor ($1\text{ k}\Omega$):**
    * Plug one leg of the **$1\text{ k}\Omega$ resistor** into **Row 6 (Col I)** (directly taps ESP32 GPIO 2).
-   * Plug the other leg into **Row 11 (Col I)** (directly taps the transistor Base). No loose wires required!
+   * Plug the other leg into **Row 11 (Col I)** (directly taps the C1815 Base, Pin 3). No loose wires required!
 5. **LC Tank (Parallel Inductor + Capacitor):**
    * Plug the **1.5 nF Capacitor** across **Row 12 (Col F)** and **Row 16 (Col F)** (inner position, towards center ravine for clearance).
    * Plug the **3.5 mH Inductor** across **Row 12 (Col H)** and **Row 16 (Col H)** (outer position, nearer breadboard edge for maximum RF radiation & easy watch placement).
@@ -217,7 +255,8 @@ Here is the top-down terminal row mapping for a standard breadboard with the **E
 * Most atomic clocks and watches contain a **horizontal ferrite rod** inside the case.
 * **Optimal Placement:** Position the inductor so that the magnetic flux lines looping out of the inductor's ends pass directly through the clock's internal antenna bar.
 * **Broadcast Range:** 
-  * Direct GPIO with $220\,\Omega$: Approx. **0.5 m to 0.7 m** (ideal for bedside table or desk).
+  * **C1815 NPN Booster (Option A):** Approx. **1.0 m to 1.2 m** (extended coverage for watches across a room or dresser).
+  * **Direct GPIO with $220\,\Omega$ (Option B):** Approx. **0.5 m to 0.7 m** (ideal for close proximity bedside table or desk).
 
 ---
 
@@ -310,3 +349,10 @@ The ESP32-C3 hosts an embedded single-page responsive web dashboard:
 * **Time Signal Protocols & Algorithms:** The core protocol encoding algorithms (`BPC`, `WWVB`, `MSF`, `DCF77`, `JJY`) and calendar routines are adapted from the open-source [timestation](https://github.com/kangtastic/timestation) project by **James Seo** (`james@equiv.tech`), licensed under the **MIT License**.
 * **Date Algorithms:** Howard Hinnant's public-domain Gregorian calendar algorithms.
 * **Hardware & Firmware Design:** Tailored for the **ESP32-C3-Mini** microcontroller using hardware LEDC PWM carrier generation and low-power deep sleep scheduling.
+
+---
+
+## 9. License
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
