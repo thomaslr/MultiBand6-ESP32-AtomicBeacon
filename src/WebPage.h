@@ -193,7 +193,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
   <div class="container">
     <div class="header">
       <h1>📡 TimeStation</h1>
-      <p>ESP32-C3 Worldwide Radio Atomic Clock Simulator</p>
+      <p>ESP32 Worldwide Radio Atomic Clock Simulator</p>
     </div>
 
     <!-- Live Status Card -->

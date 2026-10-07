@@ -1,5 +1,5 @@
 /**
- * ESP32-C3 Worldwide Radio Atomic Clock Simulator
+ * ESP32 Worldwide Radio Atomic Clock Simulator
  * Supports BPC, WWVB, MSF, DCF77, JJY40, JJY60
  * 
  * Hardware:
