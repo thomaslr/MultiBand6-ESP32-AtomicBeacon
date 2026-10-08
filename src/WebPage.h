@@ -379,7 +379,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
       </div>
       <div id="liveClock" class="clock-display">--:--:--</div>
       <div class="stat-row">
-        <span class="stat-label">Operating Mode <button type="button" class="info-btn" data-title="Operating Mode" data-content="<p><strong>Single Station:</strong> Broadcasts continuously on one designated frequency.</p><p><strong>Multi-Station Carousel:</strong> Cycles through selected stations sequentially at clean minute marks to automatically calibrate watches from different worldwide markets.</p>">i</button></span>
+        <span class="stat-label">Operating Mode <button type="button" class="info-btn" data-title="Operating Mode" data-content="<p><strong>Single Station:</strong> Broadcasts continuously on one designated frequency.</p><p><strong>Multi-Station Carousel:</strong> Cycles through selected stations sequentially at clean minute marks to automatically calibrate watches set to different worldwide timezones.</p>">i</button></span>
         <span id="modeDisplay" class="stat-value">Single Station</span>
       </div>
       <div class="stat-row">
@@ -414,7 +414,7 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
     <form id="configForm" class="card" onsubmit="saveConfig(event)">
       <div class="card-title">
         <span>TRANSMISSION MODE</span>
-        <button type="button" class="info-btn" data-title="Transmission Mode Guide" data-content="<p>Choose <strong>Single Station</strong> for a dedicated watch type, or <strong>Carousel</strong> if you own multiple MultiBand 6 watches from different markets (e.g. US, Japan, Europe).</p>">i</button>
+        <button type="button" class="info-btn" data-title="Transmission Mode Guide" data-content="<p>Choose <strong>Single Station</strong> for a dedicated watch, or <strong>Carousel</strong> if you own multiple MultiBand 6 watches set to different timezones (e.g. US, Japan, Europe).</p>">i</button>
       </div>
       <div class="mode-toggle">
         <button type="button" id="btnModeSingle" class="mode-btn active" onclick="setMode(false)">Single Station</button>
