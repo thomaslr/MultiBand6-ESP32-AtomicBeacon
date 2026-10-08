@@ -17,7 +17,7 @@ It's still under testing.
 | **Microcontroller** | **ESP32-C3-Mini** | Core Controller & Carrier Generator | Single-core 32-bit RISC-V (160 MHz), hardware LEDC PWM with fractional clock divider, RTC timer, Wi-Fi 4, BLE 5. |
 | **NPN Transistor** | **C1815 (2SC1815)** | Power Switch / RF Driver (Option A) | Small-signal NPN transistor (TO-92 package, E-C-B pinout) switching the LC tank at 5V for extended 1.0 m+ range. *(Note: You could also use a 2p2222 / 2N2222, but that transistor's different E-B-C pinout must be respected!)* |
 | **Base Resistor ($R_{base}$)** | **$1\text{ k}\Omega$ (1/4 W)** | Transistor Base Drive (Option A) | Connects between GPIO 2 and C1815 Base (Pin 3). Limits base drive current to a safe $\sim 2.6\text{ mA}$ for saturation switching. |
-| **Inductor ($L$)** | **3.5 mH (16×18 mm)** | Magnetic Antenna ($H$-field radiator) | "I-Type" drum/bobbin core power inductor. Open magnetic circuit allows magnetic dipole flux lines to radiate into the room. Low DC resistance. |
+| **Inductor ($L$)** | **16×18 3.5mH I-Type Inductor** | Magnetic Antenna ($H$-field radiator) | The reference hardware build specifically uses a **16×18 mm 3.5 mH I-type** (radial drum/bobbin core) power inductor. Its open magnetic circuit allows magnetic dipole flux lines to radiate into the room with low DC resistance. |
 | **Tuning Capacitor ($C$)** | **1.5 nF (1500 pF / code `152`)** | Parallel LC Tank Resonator | Metallized Film (CBB / Polypropylene / Polyester) or C0G/NP0 ceramic. Rated $\ge 50\text{V}$. |
 | **Damping Resistor ($R_{damp}$)** | **$220\,\Omega$ (1/4 W)** | Bandwidth Broadening & Safety Current Limiter | Lowers tank $Q$ to $\sim 6.5$, broadening bandwidth to $\sim 10\text{ kHz}$. Limits peak current to $\approx 23\text{ mA}$ in transistor booster or $\approx 15\text{ mA}$ in direct GPIO drive. |
 | **DC Blocking Cap ($C_{block}$)** | **$1\,\mu\text{F}$ (or $100\text{ nF}$)** | DC Isolation & GPIO Protection (Option B) | Only required if running Option B (Direct GPIO Drive without transistor). Completely blocks DC current so pin cannot burn out if stuck `HIGH`. |
@@ -81,19 +81,19 @@ This configuration uses the **C1815 (2SC1815) NPN** transistor powered directly 
                                     ├───[ 220 ohm ]─── (R_damp)
                                     │
                                     ├───┬───────────────┬───┐
-                                    │   │               │   │
-                                    │  [ 3.5 mH ]   [ 1.5 nF ]  (Parallel LC Tank)
-                                    │  (Inductor)   (Capacitor)
-                                    │   │               │   │
-                                    └───┴───────────────┴───┘
-                                                │
-                                                ▼
-                                         [ C ] Collector (Pin 2)
-  ESP32-C3 GPIO 2 ──[ 1k ohm ]────────── [ B ] Base (Pin 3)       C1815 NPN Transistor
-  (Default PWM Out) (R_base)             [ E ] Emitter (Pin 1)
-                                                │
-                                                ▼
-  ESP32-C3 GND ─────────────────────────────────┴─── Common Ground (GND)
+                                     │   │               │   │
+                                     │  [16x18 3.5mH] [ 1.5 nF ]  (Parallel LC Tank)
+                                     │  (I-type Ind.) (Capacitor)
+                                     │   │               │   │
+                                     └───┴───────────────┴───┘
+                                                 │
+                                                 ▼
+                                          [ C ] Collector (Pin 2)
+   ESP32-C3 GPIO 2 ──[ 1k ohm ]────────── [ B ] Base (Pin 3)       C1815 NPN Transistor
+   (Default PWM Out) (R_base)             [ E ] Emitter (Pin 1)
+                                                 │
+                                                 ▼
+   ESP32-C3 GND ─────────────────────────────────┴─── Common Ground (GND)
 ```
 
 #### Why This Works Well:
@@ -161,7 +161,8 @@ This configuration connects directly to ESP32-C3 GPIO 2 with built-in safety aga
   (Default PWM Out)                                        |                 |
                                                         +------+          +------+
                                                         |      |          |      |
-                                                     3.5 mH  Inductor  1.5 nF Capacitor
+                                                     16x18 3.5mH  Inductor 1.5 nF Cap
+                                                     (I-Type)             (CBB/Ceramic)
                                                         |      |          |      |
                                                         +------+          +------+
                                                            |                 |
@@ -207,10 +208,10 @@ Here is the top-down terminal row mapping for a standard breadboard with the **E
    11:    [ . . . . . ]                  [ . . . . . ] ── C1815 BASE (B, Pin 3) ◄─┘ (Closest to IO2!)
    12:    [ . . . . . ]                  [ . . . . . ] ── C1815 COLLECTOR (C, Pin 2)
                                                │
-                                       ┌───────┴───────┐
-                                       │ 3.5mH Inductor│  (Parallel LC Tank: Rows 12–16)
-                                       │ 1.5nF Cap     │  (Col F: Cap, Col H: Inductor)
-                                       └───────┬───────┘
+                                       ┌───────┴───────────────┐
+                                       │ 16x18 3.5mH I-Type Ind│  (Parallel LC Tank: Rows 12–16)
+                                       │ 1.5nF Capacitor       │  (Col F: Cap, Col H: Inductor)
+                                       └───────┬───────────────┘
                                                │
    13:    [ . . . . . ]                  [ . . . . . ] ── C1815 EMITTER (E, Pin 1) ── Wire to (-) Blue GND
    ...
@@ -241,7 +242,7 @@ Here is the top-down terminal row mapping for a standard breadboard with the **E
    * Plug the other leg into **Row 11 (Col I)** (directly taps the C1815 Base, Pin 3). No loose wires required!
 5. **LC Tank (Parallel Inductor + Capacitor):**
    * Plug the **1.5 nF Capacitor** across **Row 12 (Col F)** and **Row 16 (Col F)** (inner position, towards center ravine for clearance).
-   * Plug the **3.5 mH Inductor** across **Row 12 (Col H)** and **Row 16 (Col H)** (outer position, nearer breadboard edge for maximum RF radiation & easy watch placement).
+   * Plug the **16×18 3.5mH I-type Inductor** across **Row 12 (Col H)** and **Row 16 (Col H)** (outer position, nearer breadboard edge for maximum RF radiation & easy watch placement).
 6. **Damping Resistor ($220\,\Omega$):**
    * Plug one leg of the **$220\,\Omega$ resistor** into **Row 16 (Col J)**.
    * Plug the other leg directly into the **(+) Red 5V Rail**.
@@ -251,9 +252,9 @@ Here is the top-down terminal row mapping for a standard breadboard with the **E
 
 ## 3. Physical Antenna Alignment & Orientation
 
-* The **16×18 mm I-type inductor** radiates a magnetic dipole field oriented along its **vertical cylindrical axis** (top and bottom flat faces).
-* Most atomic clocks and watches contain a **horizontal ferrite rod** inside the case.
-* **Optimal Placement:** Position the inductor so that the magnetic flux lines looping out of the inductor's ends pass directly through the clock's internal antenna bar.
+* The **16×18 3.5mH I-type inductor** (16 mm diameter × 18 mm height drum core) radiates a magnetic dipole field oriented along its **vertical cylindrical axis** (top and bottom flat faces).
+* Most atomic clocks and watches (like Casio MultiBand 6 G-Shocks) contain a **horizontal ferrite rod antenna** embedded inside the case (commonly at 12 o'clock or 9 o'clock).
+* **Optimal Placement:** Position the inductor so that the magnetic flux lines looping out of the inductor's ends pass directly through the clock's internal antenna bar (parallel orientation).
 * **Broadcast Range:** 
   * **C1815 NPN Booster (Option A):** Approx. **1.0 m to 1.2 m** (extended coverage for watches across a room or dresser).
   * **Direct GPIO with $220\,\Omega$ (Option B):** Approx. **0.5 m to 0.7 m** (ideal for close proximity bedside table or desk).
@@ -333,20 +334,69 @@ Here is the top-down terminal row mapping for a standard breadboard with the **E
 
 ## 7. Web Interface Features & Multi-Station Carousel
 
-The ESP32-C3 hosts an embedded single-page responsive web dashboard:
-1. **Operating Modes:**
-   * **Single Station Mode:** Broadcasts a single chosen station (BPC, WWVB, MSF, DCF77, JJY40, JJY60) for a set duration.
-   * **Multi-Station Carousel Mode ("World Tour"):** Automatically sequences through multiple selected stations during the scheduled broadcast window so all watches in the room sync regardless of which regional home city they are configured for:
-     * Select any combination of stations via checklist (e.g. BPC 68.5 kHz $\rightarrow$ JJY60 60.0 kHz $\rightarrow$ WWVB 60.0 kHz).
-     * Configurable stage duration (e.g. 15 minutes per station $\times$ 3 stations = 45-minute nightly window).
-     * **Clean Minute Boundary Handoff:** The ESP32-C3 hardware LEDC timer retunes carrier frequency dynamically on the fly at the exact `:00` second mark, ensuring no watch receiver encounters truncated minute frames.
-     * Live dashboard displays active carousel stage and real-time countdown timers.
-2. **Timezone Offset:** Manual $\pm 12$ hour adjustment to set any destination timezone on the clock.
-3. **Broadcast Scheduling:** 
-   * *Scheduled Window:* Transmit during clock sync hours (e.g. 02:00 AM daily), modem-sleep or deep sleep otherwise.
-   * *Manual Test Mode:* On-demand broadcast button for bench testing with live countdown.
-4. **Network Credentials:** Wi-Fi SSID / Password configuration with captive portal fallback.
-5. **NTP Server:** Configurable time server (default: `pool.ntp.org`).
+The ESP32-C3 hosts an embedded single-page responsive web dashboard (`http://timestation.local`):
+
+### 1. Operating Modes
+* **Single Station Mode:** Broadcasts continuously on a chosen station (BPC, WWVB, MSF, DCF77, JJY40, JJY60) for a configured duration.
+* **Multi-Station Carousel Mode ("World Tour"):** Automatically sequences through multiple selected stations during the scheduled broadcast window so all watches in the room sync regardless of which regional home city they are configured for:
+  * Select any combination of stations via checkboxes (e.g. BPC 68.5 kHz $\rightarrow$ JJY60 60.0 kHz $\rightarrow$ WWVB 60.0 kHz).
+  * Configurable duration per station (e.g. 15 minutes per station $\times$ 3 stations = 45-minute nightly window).
+  * **Clean Minute Boundary Handoff:** The ESP32-C3 hardware LEDC timer retunes carrier frequency dynamically on the fly at the exact `:00` second mark, ensuring no watch receiver encounters truncated minute frames.
+  * Live dashboard displays active carousel stage and real-time countdown timers.
+
+### 2. Interactive Info Popovers (`ℹ️`)
+Every setting and hardware parameter includes an interactive `ℹ` info icon powered by a responsive, touch-friendly popover engine:
+* **Desktop:** Smooth hover activation (`mouseenter` / `mouseleave`).
+* **Mobile & Touchscreens:** Tap to open and pin the card; tap outside, tap the `×` button, or press `Esc` to dismiss.
+* **Viewport Clamping:** Popovers dynamically calculate positions relative to the screen to prevent edge clipping on mobile displays.
+* **Contextual Help Provided:**
+  * **Time Signal Stations:** Frequencies, regions, and matching Casio city codes (`BPC` $\rightarrow$ HKG/BJS, `WWVB` $\rightarrow$ NYC/LAX, `MSF` $\rightarrow$ LON, `DCF77` $\rightarrow$ BER/PAR/ROM/ATH, `JJY` $\rightarrow$ TYO).
+  * **Broadcast Duration:** Explains why 20–25 minutes is optimal for Casio correlation.
+  * **Overnight Calibration:** Explains why Casio watches default to searching at 2:00 AM.
+  * **Antenna Pin (GPIO 2):** Explains the LEDC PWM carrier, C1815 driver, and tuned LC tank.
+  * **NTP Time Server:** Explains Stratum-1/Stratum-2 atomic clock routing.
+
+### 3. Timezone Offset: Mechanics & World Time Limits
+
+The web interface provides a manual **Custom Time Offset** ($\pm 12$ hours) with a dynamic warning banner:
+
+#### Intended Use Cases
+* **Standalone Atomic Wall & Desk Clocks:** Many digital atomic clocks (Braun, Oregon Scientific, AcuRite, Citizen desktop stations) have no timezone configuration setting and simply display whatever time is received on their fixed carrier frequency. For these devices, the offset allows displaying local time.
+* **Single-Timezone Wristwatch Wearers:** Users who wear their watch solely for local time on the main display and do not use secondary timezone modes.
+
+#### ⚠️ Critical Limitation: Effects on Multi-Timezone & World Time Clocks
+Casio MultiBand 6 watches (G-Shock, ProTrek, Lineage, Oceanus) calculate their internal time using a **single internal UTC baseline**:
+
+$$\text{Internal UTC} = \text{Received Radio Time} - \text{Home City UTC Offset}$$
+
+When the watch enters **World Time (WT)** mode, it dynamically calculates:
+
+$$\text{World Time Display} = \text{Internal UTC} + \text{WT City Offset}$$
+
+**What happens when you apply a transmitter offset:**
+1. If your watch's Home City is set to `HKG` (Hong Kong, UTC+8) and you apply an ESP32 offset of **-5 hours** to spoof Jeddah local time (UTC+3):
+   * The watch receives 15:00 and calculates: $\text{Internal UTC} = 15\text{:}00 - 8\text{h} = \mathbf{07\text{:}00\text{ UTC}}$ (which is 5 hours behind real-world UTC).
+   * Your main watch display shows **15:00** (Jeddah time).
+   * **The Consequence:** Because the watch's internal UTC anchor is skewed by $-5\text{ hours}$, **every single city in World Time mode (e.g. LON, NYC, TYO) will also be shifted backwards by 5 hours and display incorrect times**.
+
+#### Recommended MultiBand 6 Best Practice
+If you use World Time mode on your watch:
+1. Keep the beacon offset set to **0** (Native transmitter time).
+2. Set your watch's **Home City** to a supported radio transmitter city (e.g. `HKG` for BPC, or `BER`/`ATH` for DCF77).
+3. Set your watch's **World Time** to your actual local destination city (e.g. `JED`).
+4. Use the watch's built-in **Home/World Time quick-swap shortcut** (e.g. pressing `[Adjust] + [Light]` simultaneously on module 3159 / 3495). Both timezones remain mathematically accurate.
+
+#### Live Dynamic Web Notice
+* **Offset = 0:** Displays a green neutral banner: `✓ Native Time (0h Offset): Broadcasts authentic station time. Recommended for MultiBand 6 watches to maintain accurate World Time.`
+* **Offset $\ne$ 0:** Displays a prominent amber warning banner: `⚠️ Timezone Shift (±Nh): Adjusts watch display, but shifts its internal UTC reference. All World Time cities on MultiBand 6 watches will also be shifted by ±N hours!`
+
+### 4. Broadcast Scheduling & Manual Test Mode
+* **Daily Scheduled Window:** Configurable start time (default `02:00 AM`) and duration. During idle periods, the ESP32 remains in low-power 802.11 Modem-Sleep standby (~15–20 mA) or optional deep sleep.
+* **On-Demand Test Broadcast:** A "Broadcast Now" button initiates an immediate test transmission with a live stage countdown.
+
+### 5. Network Credentials & NTP Discipline
+* Wi-Fi SSID and Password can be reconfigured from the dashboard and saved directly to ESP32 non-volatile flash memory (NVS Preferences).
+* Configurable NTP server (default: `pool.ntp.org`).
 
 ---
 
