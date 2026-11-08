@@ -71,10 +71,11 @@ unsafe extern "C" fn on_tick_timer_callback(_arg: *mut core::ffi::c_void) {
                 }
             }
 
-            // Regenerate frame for current epoch
+            // Regenerate frame for upcoming minute epoch (robust against +/- 1s boundary jitter)
             let station = *state.active_station.lock().unwrap();
             let offset_hours = *state.user_offset_hours.lock().unwrap();
-            let (new_frame, _) = generate_frame(station, now_sec as u64, offset_hours * 3600, 0);
+            let frame_minute_sec = ((now_sec + 1) - ((now_sec + 1) % 60)) as u64;
+            let (new_frame, _) = generate_frame(station, frame_minute_sec, offset_hours * 3600, 0);
 
             *state.tick_buffer.lock().unwrap() = new_frame;
             idx = 0;
@@ -216,11 +217,30 @@ impl CarrierManager {
         self.state.carrier_freq_hz.store(freq, Ordering::Relaxed);
         setup_ledc_pwm(freq);
 
-        let (frame, _) = generate_frame(first_station, now_sec as u64, config.offset_hours * 3600, 0);
+        // Align initial frame and tick index precisely to wall-clock time
+        let mut tv = esp_idf_svc::sys::timeval { tv_sec: 0, tv_usec: 0 };
+        unsafe {
+            esp_idf_svc::sys::gettimeofday(&mut tv, core::ptr::null_mut());
+        }
+        let clk_sec = tv.tv_sec as u32;
+        let sec_in_min = (clk_sec % 60) as usize;
+        let ms_in_sec = (tv.tv_usec / 1000) as usize;
+        let tick_in_sec = (ms_in_sec / 50).min(19);
+        let start_tick_idx = sec_in_min * 20 + tick_in_sec;
+
+        // Base the initial frame on the start of the current minute
+        let minute_start_sec = (clk_sec - (clk_sec % 60)) as u64;
+        let (frame, _) = generate_frame(first_station, minute_start_sec, config.offset_hours * 3600, 0);
         *self.state.tick_buffer.lock().unwrap() = frame;
-        self.state.current_tick_idx.store(0, Ordering::Relaxed);
-        self.state.transmit_start_sec.store(now_sec, Ordering::Relaxed);
+        self.state.transmit_start_sec.store(clk_sec, Ordering::Relaxed);
         self.state.transmit_duration_sec.store(total_duration, Ordering::Relaxed);
+
+        // Phase-lock the 50ms periodic timer to the wall-clock 50ms boundary
+        let delay_us = 50_000 - (tv.tv_usec % 50_000);
+        if delay_us > 1000 && delay_us < 50_000 {
+            std::thread::sleep(std::time::Duration::from_micros(delay_us as u64));
+        }
+        self.state.current_tick_idx.store((start_tick_idx + 1) % TOTAL_FRAME_TICKS, Ordering::Relaxed);
 
         self.state.is_transmitting.store(true, Ordering::SeqCst);
 

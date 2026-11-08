@@ -5,6 +5,19 @@ All notable changes to the MultiBand 6 ESP32 Atomic Beacon project will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-11-08
+
+### Fixed
+- **Subsecond Broadcast Phase-Locking**: Synchronized RF timer phase to real-world 50 ms tick boundaries and aligned initial frame position with wall-clock time, completely eliminating the 50-second watch sync offset.
+- **Network Tab Status**: Resolved JSON field serialization between backend snake_case and frontend camelCase, restoring live Wi-Fi SSID and RSSI signal quality readouts.
+- **Station Dropdown Persistence**: Resolved enum string values to numerical select options so the active station (e.g. BPC) stays preserved when switching between dashboard tabs.
+
+### Added
+- **Live Stop Button Countdown**: Displayed remaining broadcast time on the active Stop button (`⏹ Stop (MM:SS)`), updating dynamically each second.
+
+### Changed
+- **Dashboard Footer Cleanup**: Removed third-party date algorithm attribution from user-facing footer.
+
 ## [0.1.0] - 2026-11-08
 
 ### Added

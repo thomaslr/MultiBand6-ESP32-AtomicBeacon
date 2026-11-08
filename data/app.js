@@ -15,6 +15,8 @@ let userOffsetHours = 0;
 let activeStationIdx = 0;
 let serverEpochSec = 0;
 let clientEpochBaseMs = Date.now();
+let transmitRemainSec = 0;
+let transmitRemainBaseMs = Date.now();
 let appConfig = null;
 
 // --- Tab Management ---
@@ -48,8 +50,15 @@ function loadConfigToForm(cfg) {
   // Broadcast parameters
   if (cfg.station !== undefined) {
     const stEl = document.getElementById('station');
-    if (stEl) stEl.value = String(cfg.station);
-    activeStationIdx = cfg.station;
+    let stIdx = 0;
+    if (typeof cfg.station === 'number') {
+      stIdx = cfg.station;
+    } else if (typeof cfg.station === 'string') {
+      const map = { bpc: 0, wwvb: 1, msf: 2, dcf77: 3, jjy40: 4, jjy60: 5 };
+      stIdx = map[cfg.station.toLowerCase()] !== undefined ? map[cfg.station.toLowerCase()] : 0;
+    }
+    if (stEl) stEl.value = String(stIdx);
+    activeStationIdx = stIdx;
   }
   if (cfg.offset_hours !== undefined) {
     const offEl = document.getElementById('offsetHours');
@@ -120,17 +129,39 @@ async function pollStatus() {
     if (!res.ok) throw new Error('Status fetch failed');
     const data = await res.json();
 
-    isTransmitting = data.transmitting;
-    activeStationIdx = data.activeStation || 0;
-    userOffsetHours = data.offsetHours || 0;
-    carouselMode = data.carouselEnabled || false;
-    serverEpochSec = data.epochSec || Math.floor(Date.now() / 1000);
+    const activeSt = data.active_station !== undefined ? data.active_station : (data.activeStation || 0);
+    const offsetH = data.offset_hours !== undefined ? data.offset_hours : (data.offsetHours || 0);
+    const carEn = data.carousel_enabled !== undefined ? data.carousel_enabled : (data.carouselEnabled || false);
+    const epSec = data.epoch_sec !== undefined ? data.epoch_sec : (data.epochSec || Math.floor(Date.now() / 1000));
+    const totRemain = data.total_remain_sec !== undefined ? data.total_remain_sec : (data.totalRemainSec || 0);
+
+    isTransmitting = !!data.transmitting;
+    activeStationIdx = activeSt;
+    userOffsetHours = offsetH;
+    carouselMode = carEn;
+    serverEpochSec = epSec;
     clientEpochBaseMs = Date.now();
+    transmitRemainSec = totRemain;
+    transmitRemainBaseMs = Date.now();
 
     // Update UI elements
     updateStatusDisplay(data);
   } catch (err) {
     console.warn('Status poll offline:', err);
+  }
+}
+
+function updateStopButtonCountdown() {
+  const btnStop = document.getElementById('btnStop');
+  if (!btnStop) return;
+  if (isTransmitting && transmitRemainSec > 0) {
+    const elapsedSec = Math.floor((Date.now() - transmitRemainBaseMs) / 1000);
+    const remain = Math.max(0, transmitRemainSec - elapsedSec);
+    const min = Math.floor(remain / 60);
+    const sec = remain % 60;
+    btnStop.innerText = `⏹ Stop (${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')})`;
+  } else {
+    btnStop.innerText = '⏹ Stop';
   }
 }
 
@@ -151,21 +182,30 @@ function updateStatusDisplay(data) {
     btnTransmit.disabled = false;
     btnStop.disabled = true;
   }
+  updateStopButtonCountdown();
 
-  const st = STATIONS[data.activeStation] || STATIONS[0];
-  document.getElementById('activeStation').innerText = data.carouselEnabled
+  const activeSt = data.active_station !== undefined ? data.active_station : (data.activeStation || 0);
+  const st = STATIONS[activeSt] || STATIONS[0];
+  const carEn = data.carousel_enabled !== undefined ? data.carousel_enabled : (data.carouselEnabled || false);
+  document.getElementById('activeStation').innerText = carEn
     ? `🔄 ${st.name}`
     : st.name;
-  document.getElementById('carrierFreq').innerText = (data.carrierFreq || st.freq).toLocaleString() + ' Hz';
+
+  const freq = data.carrier_freq || data.carrierFreq || st.freq;
+  document.getElementById('carrierFreq').innerText = freq.toLocaleString() + ' Hz';
 
   // Carousel progress
   const progressBox = document.getElementById('carouselProgressBox');
-  if (data.transmitting && data.carouselEnabled && data.carouselTotalStages > 1) {
+  const carStages = data.carousel_total_stages !== undefined ? data.carousel_total_stages : (data.carouselTotalStages || 1);
+  const carStage = data.carousel_stage !== undefined ? data.carousel_stage : (data.carouselStage || 1);
+  const stageRemain = data.stage_remain_sec !== undefined ? data.stage_remain_sec : (data.stageRemainSec || 0);
+
+  if (data.transmitting && carEn && carStages > 1) {
     progressBox.style.display = 'block';
     document.getElementById('carouselStageLabel').innerText =
-      `Stage ${data.carouselStage}/${data.carouselTotalStages}: ${st.name}`;
-    const min = Math.floor(data.stageRemainSec / 60);
-    const sec = data.stageRemainSec % 60;
+      `Stage ${carStage}/${carStages}: ${st.name}`;
+    const min = Math.floor(stageRemain / 60);
+    const sec = stageRemain % 60;
     document.getElementById('carouselTimeRemain').innerText =
       `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')} remain`;
   } else {
@@ -174,12 +214,15 @@ function updateStatusDisplay(data) {
 
   // Network stats
   if (data.ip) document.getElementById('netIp').innerText = data.ip;
-  if (data.wifiSsid) document.getElementById('netSsid').innerText = data.wifiSsid;
-  if (data.wifiRssi !== undefined) {
-    document.getElementById('netRssi').innerText = `${data.wifiRssi} dBm`;
+  const ssid = data.wifi_ssid || data.wifiSsid;
+  if (ssid) document.getElementById('netSsid').innerText = ssid;
+  const rssi = data.wifi_rssi !== undefined ? data.wifi_rssi : data.wifiRssi;
+  if (rssi !== undefined && rssi !== 0) {
+    document.getElementById('netRssi').innerText = `${rssi} dBm`;
   }
-  if (data.hostname) {
-    document.getElementById('netMdns').innerText = `${data.hostname}.local`;
+  const hostname = data.hostname;
+  if (hostname) {
+    document.getElementById('netMdns').innerText = `${hostname}.local`;
   }
   if (data.version) {
     document.getElementById('versionBadge').innerText = data.version;
@@ -202,6 +245,8 @@ function tickClock() {
   const stationDate = new Date(stationSec * 1000);
   document.getElementById('localClock').innerText =
     stationDate.toISOString().substring(11, 19);
+
+  updateStopButtonCountdown();
 }
 
 // --- Broadcast Control Actions ---
