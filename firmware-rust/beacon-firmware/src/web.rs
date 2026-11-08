@@ -27,6 +27,14 @@ static APP_JS: &str = include_str!("../../../data/app.js");
 static APP_JS_GZ: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/app.js.gz"));
 static FAVICON_SVG: &str = include_str!("../../../data/favicon.svg");
 static FAVICON_SVG_GZ: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/favicon.svg.gz"));
+static MANIFEST_JSON: &str = include_str!("../../../data/manifest.json");
+static MANIFEST_JSON_GZ: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/manifest.json.gz"));
+static SW_JS: &str = include_str!("../../../data/sw.js");
+static SW_JS_GZ: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/sw.js.gz"));
+static ICON_192_PNG: &[u8] = include_bytes!("../../../data/icon-192.png");
+static ICON_192_PNG_GZ: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/icon-192.png.gz"));
+static ICON_512_PNG: &[u8] = include_bytes!("../../../data/icon-512.png");
+static ICON_512_PNG_GZ: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/icon-512.png.gz"));
 
 pub struct AppState {
     pub config: AppConfig,
@@ -85,6 +93,20 @@ pub fn create_web_server(state: Arc<Mutex<AppState>>) -> Result<EspHttpServer<'s
     })?;
     server.fn_handler("/favicon.ico", Method::Get, |req| {
         send_file(req, "image/svg+xml", FAVICON_SVG, FAVICON_SVG_GZ)
+    })?;
+
+    // PWA Manifest, Service Worker, and App Icons
+    server.fn_handler("/manifest.json", Method::Get, |req| {
+        send_file(req, "application/manifest+json", MANIFEST_JSON, MANIFEST_JSON_GZ)
+    })?;
+    server.fn_handler("/sw.js", Method::Get, |req| {
+        send_file(req, "application/javascript", SW_JS, SW_JS_GZ)
+    })?;
+    server.fn_handler("/icon-192.png", Method::Get, |req| {
+        send_binary(req, "image/png", ICON_192_PNG, ICON_192_PNG_GZ)
+    })?;
+    server.fn_handler("/icon-512.png", Method::Get, |req| {
+        send_binary(req, "image/png", ICON_512_PNG, ICON_512_PNG_GZ)
     })?;
 
     // 2. GET /api/status
@@ -353,6 +375,20 @@ pub fn create_setup_server(
         send_file(req, "image/svg+xml", FAVICON_SVG, FAVICON_SVG_GZ)
     })?;
 
+    // PWA Manifest, Service Worker, and App Icons
+    server.fn_handler("/manifest.json", Method::Get, |req| {
+        send_file(req, "application/manifest+json", MANIFEST_JSON, MANIFEST_JSON_GZ)
+    })?;
+    server.fn_handler("/sw.js", Method::Get, |req| {
+        send_file(req, "application/javascript", SW_JS, SW_JS_GZ)
+    })?;
+    server.fn_handler("/icon-192.png", Method::Get, |req| {
+        send_binary(req, "image/png", ICON_192_PNG, ICON_192_PNG_GZ)
+    })?;
+    server.fn_handler("/icon-512.png", Method::Get, |req| {
+        send_binary(req, "image/png", ICON_512_PNG, ICON_512_PNG_GZ)
+    })?;
+
     // 3. GET /api/scan
     let s_scan = Arc::clone(&scanned_ssids);
     server.fn_handler("/api/scan", Method::Get, move |req| {
@@ -415,6 +451,15 @@ fn send_file(
     raw: &str,
     gz: &[u8],
 ) -> Result<(), EspIOError> {
+    send_binary(req, content_type, raw.as_bytes(), gz)
+}
+
+fn send_binary(
+    req: Request<&mut EspHttpConnection>,
+    content_type: &str,
+    raw: &[u8],
+    gz: &[u8],
+) -> Result<(), EspIOError> {
     let accept_encoding = req.header("Accept-Encoding").unwrap_or("");
     let use_gzip = accept_encoding.contains("gzip");
 
@@ -436,7 +481,7 @@ fn send_file(
     if use_gzip {
         resp.write_all(gz)?;
     } else {
-        resp.write_all(raw.as_bytes())?;
+        resp.write_all(raw)?;
     }
     Ok(())
 }

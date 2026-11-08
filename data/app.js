@@ -477,6 +477,13 @@ function hideInfo() {
 
 // --- Initial Startup ---
 window.onload = () => {
+  // Register Service Worker for PWA Standalone App support
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      console.warn('[PWA] ServiceWorker registration failed:', err);
+    });
+  }
+
   pollStatus();
   setInterval(pollStatus, 4000);
   setInterval(tickClock, 1000);

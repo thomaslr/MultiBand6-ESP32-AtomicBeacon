@@ -1,3 +1,50 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#38bdf8">
-  <path d="M12 2C6.48 2 2 6.48 2 12c0 3.84 2.16 7.18 5.34 8.86l.66-.66C6.28 18.66 5 15.68 5 12c0-3.86 3.14-7 7-7s7 3.14 7 7c0 3.68-1.28 6.66-3 8.2l.66.66C19.84 19.18 22 15.84 22 12c0-5.52-4.48-10-10-10zm0 4a6 6 0 0 0-6 6c0 2.5 1.45 4.67 3.55 5.67L12 15l2.45 2.67C16.55 16.67 18 14.5 18 12a6 6 0 0 0-6-6zm0 2c2.21 0 4 1.79 4 4 0 1.25-.58 2.36-1.5 3.08L12 14.5l-2.5 2.58A3.987 3.987 0 0 1 8 14c0-2.21 1.79-4 4-4z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="bgTile" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#080e1a"/>
+    </linearGradient>
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="waveGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="30%" stop-color="#38bdf8"/>
+      <stop offset="70%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#c084fc"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Modern squircle tile with cyber cyan accent border -->
+  <rect width="64" height="64" rx="16" fill="url(#bgTile)"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="14.5" fill="none" stroke="url(#cyanGrad)" stroke-width="2.5" stroke-opacity="0.9"/>
+
+  <!-- Concentric Atomic RF Broadcast Waves -->
+  <!-- Arc 4 (outermost) -->
+  <path d="M 10 35 A 22 22 0 0 1 54 35" fill="none" stroke="url(#waveGrad)" stroke-width="2.8" stroke-linecap="round" stroke-opacity="0.4"/>
+  <!-- Arc 3 -->
+  <path d="M 15 35 A 17 17 0 0 1 49 35" fill="none" stroke="url(#waveGrad)" stroke-width="3" stroke-linecap="round" stroke-opacity="0.65"/>
+  <!-- Arc 2 -->
+  <path d="M 20 35 A 12 12 0 0 1 44 35" fill="none" stroke="url(#waveGrad)" stroke-width="3.2" stroke-linecap="round" stroke-opacity="0.85"/>
+  <!-- Arc 1 (innermost) -->
+  <path d="M 25 35 A 7 7 0 0 1 39 35" fill="none" stroke="url(#waveGrad)" stroke-width="3.4" stroke-linecap="round"/>
+
+  <!-- Atomic Beacon Central Emitter Sphere & Core -->
+  <circle cx="32" cy="35" r="4.5" fill="#38bdf8"/>
+  <circle cx="32" cy="35" r="2" fill="#ffffff"/>
+
+  <!-- Radio Transmission Lattice Tower -->
+  <!-- Tower A-Frame Legs -->
+  <path d="M 32 37 L 23 54 M 32 37 L 41 54" fill="none" stroke="#94a3b8" stroke-width="2.8" stroke-linecap="round"/>
+  <!-- Horizontal Cross Struts -->
+  <path d="M 27.5 45 L 36.5 45" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round"/>
+  <path d="M 25 50 L 39 50" fill="none" stroke="#64748b" stroke-width="2" stroke-linecap="round"/>
+  <!-- Tower Base Feet -->
+  <path d="M 20 54 L 26 54 M 38 54 L 44 54" fill="none" stroke="#94a3b8" stroke-width="2.8" stroke-linecap="round"/>
+
+  <!-- Top Time Beacon Pulses (WWVB, MSF, DCF77, JJY, BPC) -->
+  <circle cx="32" cy="9" r="1.8" fill="#38bdf8"/>
+  <circle cx="22" cy="12" r="1.2" fill="#818cf8" opacity="0.8"/>
+  <circle cx="42" cy="12" r="1.2" fill="#818cf8" opacity="0.8"/>
 </svg>

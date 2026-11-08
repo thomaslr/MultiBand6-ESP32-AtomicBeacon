@@ -23,6 +23,10 @@ fn main() {
         "style.css",
         "app.js",
         "favicon.svg",
+        "manifest.json",
+        "sw.js",
+        "icon-192.png",
+        "icon-512.png",
     ];
     for asset in assets {
         let src_path = format!("../../data/{}", asset);

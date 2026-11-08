@@ -172,15 +172,32 @@ pub fn flash_stream<R: Read>(mut reader: R, expected_len: usize) -> Result<(), S
 
     let mut buf = [0u8; 2048];
     let mut total_bytes = 0usize;
+    let mut last_log_bytes = 0usize;
 
     loop {
-        match reader.read(&mut buf) {
+        let to_read = if expected_len > 0 {
+            buf.len().min(expected_len.saturating_sub(total_bytes))
+        } else {
+            buf.len()
+        };
+        if expected_len > 0 && to_read == 0 {
+            break;
+        }
+
+        match reader.read(&mut buf[..to_read]) {
             Ok(0) => break,
             Ok(n) => {
                 update
                     .write(&buf[..n])
                     .map_err(|e| format!("Failed writing flash: {:?}", e))?;
                 total_bytes += n;
+                if total_bytes - last_log_bytes >= 204800 {
+                    info!("[OTA] Uploaded and flashed {} KB...", total_bytes / 1024);
+                    last_log_bytes = total_bytes;
+                }
+                if expected_len > 0 && total_bytes >= expected_len {
+                    break;
+                }
             }
             Err(e) => {
                 let _ = update.abort();
