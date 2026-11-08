@@ -16,6 +16,10 @@ fn main() {
     }
 
     // Pre-compress web UI assets with Gzip at build time (~80% payload reduction)
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set");
+    let data_dir = Path::new(&manifest_dir).parent().unwrap().parent().unwrap().join("data");
+    println!("cargo:rerun-if-changed={}", data_dir.display());
+
     let out_dir = env::var("OUT_DIR").expect("OUT_DIR not set");
     let assets = [
         "index.html",
@@ -29,15 +33,15 @@ fn main() {
         "icon-512.png",
     ];
     for asset in assets {
-        let src_path = format!("../../data/{}", asset);
-        println!("cargo:rerun-if-changed={}", src_path);
+        let src_path = data_dir.join(asset);
+        println!("cargo:rerun-if-changed={}", src_path.display());
         let output = Command::new("gzip")
-            .args(["-9", "-n", "-c", &src_path])
+            .args(["-9", "-n", "-c", src_path.to_str().unwrap()])
             .output()
-            .unwrap_or_else(|e| panic!("Failed to run gzip on {}: {}", src_path, e));
+            .unwrap_or_else(|e| panic!("Failed to run gzip on {:?}: {}", src_path, e));
         assert!(
             output.status.success(),
-            "gzip failed for {}: {}",
+            "gzip failed for {:?}: {}",
             src_path,
             String::from_utf8_lossy(&output.stderr)
         );

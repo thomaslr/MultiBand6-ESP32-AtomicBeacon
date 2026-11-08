@@ -100,6 +100,31 @@ body {
   align-items: center;
   justify-content: center;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+.github-header-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(192, 132, 252, 0.12);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  padding: 3px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.github-header-btn:hover {
+  background: rgba(192, 132, 252, 0.24);
+  border-color: var(--accent);
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--accent-glow);
 }
 
 .header h1 {
@@ -744,4 +769,47 @@ input:checked + .slider:before {
   box-shadow: 0 0 8px var(--accent-glow);
   width: 0%;
   transition: width 0.3s;
+}
+
+/* App Footer */
+.app-footer {
+  text-align: center;
+  margin: 32px 0 16px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(192, 132, 252, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.footer-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.footer-links a:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+.footer-subtext {
+  font-size: 11px;
+  color: var(--text-muted);
+  opacity: 0.75;
 }
