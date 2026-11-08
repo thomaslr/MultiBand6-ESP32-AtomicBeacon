@@ -12,20 +12,6 @@ pub const TIMEPROTO_MAX_LEVEL_BYTES: usize = 150; // 60s * 20 ticks / 8 = 150 by
 pub const TOTAL_FRAME_TICKS: usize = 60 * TSIG_TICKS_PER_SEC; // 1200 ticks
 
 const TSIG_WAVEFORM_SYNC_MARKER: u8 = 0xff;
-const TSIG_WAVEFORM_JJY_ANNOUNCE_MIN: u8 = 15;
-const TSIG_WAVEFORM_JJY_ANNOUNCE_MIN2: u8 = 45;
-const TSIG_WAVEFORM_JJY_MORSE_SEC: usize = 40;
-const TSIG_WAVEFORM_JJY_MORSE_MS: usize = 550;
-const TSIG_WAVEFORM_JJY_MORSE_END_SEC: usize = 49;
-const TSIG_WAVEFORM_JJY_MORSE_TICK: usize =
-    (TSIG_WAVEFORM_JJY_MORSE_SEC * TSIG_TICKS_PER_SEC) + (TSIG_WAVEFORM_JJY_MORSE_MS / TSIG_TICK_MS);
-const TSIG_WAVEFORM_JJY_MORSE_END_TICK: usize = TSIG_WAVEFORM_JJY_MORSE_END_SEC * TSIG_TICKS_PER_SEC;
-
-const TSIG_WAVEFORM_TICKS_PER_DIT: usize = 2;
-const TSIG_WAVEFORM_TICKS_PER_DAH: usize = 5;
-const TSIG_WAVEFORM_TICKS_PER_IEG: usize = 1;
-const TSIG_WAVEFORM_TICKS_PER_ICG: usize = 6;
-const TSIG_WAVEFORM_TICKS_PER_IWG: usize = 10;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[repr(u8)]
@@ -161,9 +147,7 @@ fn xmit_bpc(dt: TsigDateTime, _dut1_ms: i16, xmit_level: &mut [u8; TIMEPROTO_MAX
 
     let mut j = 0usize;
     for p in 0..3 {
-        if p != 0 {
-            bits[1] = 1 << p;
-        }
+        bits[1] = p as u8;
         if p == 1 {
             bits[10] ^= 1;
         }
@@ -299,45 +283,6 @@ fn xmit_dcf77(dt: TsigDateTime, _dut1_ms: i16, xmit_level: &mut [u8; TIMEPROTO_M
 // -----------------------------------------------------------------------------
 // JJY (Japan, 40.0 kHz & 60.0 kHz)
 // -----------------------------------------------------------------------------
-fn jjy_morse_pulse(xmit_level: &mut [u8; TIMEPROTO_MAX_LEVEL_BYTES], k: &mut usize, ticks: usize) {
-    for _ in 0..ticks {
-        set_bit(xmit_level, *k, true);
-        *k += 1;
-    }
-}
-
-fn jjy_morse(xmit_level: &mut [u8; TIMEPROTO_MAX_LEVEL_BYTES]) {
-    let lo = TSIG_WAVEFORM_JJY_MORSE_SEC * TSIG_TICKS_PER_SEC;
-    let hi = TSIG_WAVEFORM_JJY_MORSE_END_SEC * TSIG_TICKS_PER_SEC;
-    for i in lo..hi {
-        set_bit(xmit_level, i, false);
-    }
-
-    let mut k = TSIG_WAVEFORM_JJY_MORSE_TICK;
-    for _ in 0..2 {
-        // JJ: .--- .---
-        for _ in 0..2 {
-            jjy_morse_pulse(xmit_level, &mut k, TSIG_WAVEFORM_TICKS_PER_DIT);
-            k += TSIG_WAVEFORM_TICKS_PER_IEG;
-            jjy_morse_pulse(xmit_level, &mut k, TSIG_WAVEFORM_TICKS_PER_DAH);
-            k += TSIG_WAVEFORM_TICKS_PER_IEG;
-            jjy_morse_pulse(xmit_level, &mut k, TSIG_WAVEFORM_TICKS_PER_DAH);
-            k += TSIG_WAVEFORM_TICKS_PER_IEG;
-            jjy_morse_pulse(xmit_level, &mut k, TSIG_WAVEFORM_TICKS_PER_DAH);
-            k += TSIG_WAVEFORM_TICKS_PER_ICG;
-        }
-        // Y: -.--
-        jjy_morse_pulse(xmit_level, &mut k, TSIG_WAVEFORM_TICKS_PER_DAH);
-        k += TSIG_WAVEFORM_TICKS_PER_IEG;
-        jjy_morse_pulse(xmit_level, &mut k, TSIG_WAVEFORM_TICKS_PER_DIT);
-        k += TSIG_WAVEFORM_TICKS_PER_IEG;
-        jjy_morse_pulse(xmit_level, &mut k, TSIG_WAVEFORM_TICKS_PER_DAH);
-        k += TSIG_WAVEFORM_TICKS_PER_IEG;
-        jjy_morse_pulse(xmit_level, &mut k, TSIG_WAVEFORM_TICKS_PER_DAH);
-        k += TSIG_WAVEFORM_TICKS_PER_IWG;
-    }
-}
-
 fn xmit_jjy(dt: TsigDateTime, _dut1_ms: i16, xmit_level: &mut [u8; TIMEPROTO_MAX_LEVEL_BYTES]) {
     let mut bits = [0u8; 60];
     bits[0] = TSIG_WAVEFORM_SYNC_MARKER;
@@ -388,39 +333,31 @@ fn xmit_jjy(dt: TsigDateTime, _dut1_ms: i16, xmit_level: &mut [u8; TIMEPROTO_MAX
     bits[36] = even_parity(&bits, 12, 19);
     bits[37] = even_parity(&bits, 1, 9);
 
-    let is_announce = dt.min == TSIG_WAVEFORM_JJY_ANNOUNCE_MIN
-        || dt.min == TSIG_WAVEFORM_JJY_ANNOUNCE_MIN2;
-    if !is_announce {
-        let year_10 = ((dt.year % 100) / 10) as u8;
-        bits[41] = (year_10 >> 3) & 1;
-        bits[42] = (year_10 >> 2) & 1;
-        bits[43] = (year_10 >> 1) & 1;
-        bits[44] = year_10 & 1;
+    // Always encode Year and Day-of-Week on all minutes (NICT discontinued
+    // the :15/:45 Morse callsign override in March 2024, and watches require
+    // Year/DOW to validate a date+time frame).
+    let year_10 = ((dt.year % 100) / 10) as u8;
+    bits[41] = (year_10 >> 3) & 1;
+    bits[42] = (year_10 >> 2) & 1;
+    bits[43] = (year_10 >> 1) & 1;
+    bits[44] = year_10 & 1;
 
-        let year = (dt.year % 10) as u8;
-        bits[45] = (year >> 3) & 1;
-        bits[46] = (year >> 2) & 1;
-        bits[47] = (year >> 1) & 1;
-        bits[48] = year & 1;
+    let year = (dt.year % 10) as u8;
+    bits[45] = (year >> 3) & 1;
+    bits[46] = (year >> 2) & 1;
+    bits[47] = (year >> 1) & 1;
+    bits[48] = year & 1;
 
-        let dow = dt.dow;
-        bits[50] = (dow >> 2) & 1;
-        bits[51] = (dow >> 1) & 1;
-        bits[52] = dow & 1;
-    }
+    let dow = dt.dow;
+    bits[50] = (dow >> 2) & 1;
+    bits[51] = (dow >> 1) & 1;
+    bits[52] = dow & 1;
 
-    let mut i = 0usize;
     let mut j = 0usize;
-    while i < bits.len() {
-        if is_announce && i == TSIG_WAVEFORM_JJY_MORSE_SEC {
-            jjy_morse(xmit_level);
-            i = TSIG_WAVEFORM_JJY_MORSE_END_SEC;
-            j = TSIG_WAVEFORM_JJY_MORSE_END_TICK;
-        }
-
-        let hi_dsec = if bits[i] == TSIG_WAVEFORM_SYNC_MARKER {
+    for &b in &bits {
+        let hi_dsec = if b == TSIG_WAVEFORM_SYNC_MARKER {
             2
-        } else if bits[i] != 0 {
+        } else if b != 0 {
             5
         } else {
             8
@@ -436,7 +373,6 @@ fn xmit_jjy(dt: TsigDateTime, _dut1_ms: i16, xmit_level: &mut [u8; TIMEPROTO_MAX
             set_bit(xmit_level, j, false);
             j += 1;
         }
-        i += 1;
     }
 }
 
@@ -634,8 +570,9 @@ fn xmit_wwvb(dt: TsigDateTime, dut1_ms: i16, xmit_level: &mut [u8; TIMEPROTO_MAX
 
     bits[55] = if datetime::is_leap(dt.year) { 1 } else { 0 };
     let mut dst_end = 0u8;
-    bits[58] = datetime::is_us_dst(&dt, &mut dst_end);
-    bits[57] = dst_end;
+    // NIST WWVB spec: Bit 57 = DST status at 00:00 UTC today, Bit 58 = DST status at 24:00 UTC today
+    bits[57] = datetime::is_us_dst(&dt, &mut dst_end);
+    bits[58] = dst_end;
 
     let mut j = 0usize;
     for &b in &bits {

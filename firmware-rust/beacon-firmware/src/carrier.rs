@@ -222,29 +222,38 @@ impl CarrierManager {
         unsafe {
             esp_idf_svc::sys::gettimeofday(&mut tv, core::ptr::null_mut());
         }
+        let delay_us = 50_000 - (tv.tv_usec % 50_000);
+        if delay_us > 0 && delay_us < 50_000 {
+            let target_us = unsafe { esp_idf_svc::sys::esp_timer_get_time() } + (delay_us as i64);
+            while unsafe { esp_idf_svc::sys::esp_timer_get_time() } < target_us {}
+        }
+
+        // Re-read exact wall-clock time right at the 50ms boundary
+        unsafe {
+            esp_idf_svc::sys::gettimeofday(&mut tv, core::ptr::null_mut());
+        }
         let clk_sec = tv.tv_sec as u32;
         let sec_in_min = (clk_sec % 60) as usize;
-        let ms_in_sec = (tv.tv_usec / 1000) as usize;
-        let tick_in_sec = (ms_in_sec / 50).min(19);
-        let start_tick_idx = sec_in_min * 20 + tick_in_sec;
+        let tick_in_sec = ((tv.tv_usec / 50_000) as usize).min(19);
+        let now_tick_idx = sec_in_min * 20 + tick_in_sec;
 
         // Base the initial frame on the start of the current minute
         let minute_start_sec = (clk_sec - (clk_sec % 60)) as u64;
         let (frame, _) = generate_frame(first_station, minute_start_sec, config.offset_hours * 3600, 0);
+        let initial_tick_val = get_tick_level(&frame, now_tick_idx);
         *self.state.tick_buffer.lock().unwrap() = frame;
         self.state.transmit_start_sec.store(clk_sec, Ordering::Relaxed);
         self.state.transmit_duration_sec.store(total_duration, Ordering::Relaxed);
 
-        // Phase-lock the 50ms periodic timer to the wall-clock 50ms boundary
-        let delay_us = 50_000 - (tv.tv_usec % 50_000);
-        if delay_us > 1000 && delay_us < 50_000 {
-            std::thread::sleep(std::time::Duration::from_micros(delay_us as u64));
-        }
-        self.state.current_tick_idx.store((start_tick_idx + 1) % TOTAL_FRAME_TICKS, Ordering::Relaxed);
-
+        // Immediately assert the current 50ms tick level and schedule next tick in 50ms
+        self.state.current_tick_idx.store(now_tick_idx + 1, Ordering::Relaxed);
         self.state.is_transmitting.store(true, Ordering::SeqCst);
 
         unsafe {
+            let duty = if initial_tick_val { 128 } else { 0 };
+            ledc_set_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_0, duty);
+            ledc_update_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_0);
+
             if !TIMER_HANDLE.is_null() {
                 esp_timer_start_periodic(TIMER_HANDLE, 50_000); // 50,000 us = 50 ms
             }
