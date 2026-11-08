@@ -1,0 +1,13 @@
+[workspace]
+members = [
+    "beacon-core",
+    "beacon-firmware",
+]
+resolver = "2"
+
+[profile.release]
+opt-level = "s"
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = true

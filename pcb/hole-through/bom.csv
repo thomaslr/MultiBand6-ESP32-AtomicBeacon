@@ -1,0 +1,19 @@
+Designator,Value,Package / Footprint,Lead Spacing / Pitch,Description,Recommended Part / Type
+U1,ESP32-C3 SuperMini,2x 1x8 Socket Header,P=2.54mm (600mil row spacing),RISC-V Wi-Fi/BLE MCU Module,Standard ESP32-C3 SuperMini
+Q1,C1815 (or 2N2222),TO-92,P=2.54mm Inline,Small Signal NPN RF Switch Transistor,2SC1815 (E-C-B) or 2N2222 (E-B-C)
+D1,1N5819,DO-41 Axial,P=10.16mm (400mil),1A 40V Schottky Inductive Clamp Diode,1N5819 (or 1N4148 / 1N4007)
+R1,1k,Axial DIN0207,P=10.16mm (400mil),1/4W 5% Metal/Carbon Film Base Resistor,Standard 1k 1/4W Resistor
+R2,220R,Axial DIN0207,P=10.16mm (400mil),1/4W 5% Metal/Carbon Film Damping Resistor,Standard 220R 1/4W Resistor
+R4,4.7k,Axial DIN0207,P=10.16mm (400mil),1/4W 5% Metal Film I2C SDA Pull-Up,Standard 4.7k 1/4W Resistor
+R5,4.7k,Axial DIN0207,P=10.16mm (400mil),1/4W 5% Metal Film I2C SCL Pull-Up,Standard 4.7k 1/4W Resistor
+R6,10k,Axial DIN0207,P=10.16mm (400mil),1/4W 5% Metal Film Pushbutton Pull-Up,Standard 10k 1/4W Resistor
+C1,1.5nF,Radial / Box Film,P=5.08mm (200mil),1.5nF (1500pF / code 152) 50V+ Tank Resonator,Metallized Film / C0G Ceramic
+C2,Optional Socket,Box Film / Radial,P=5.08mm (200mil),Auxiliary Tank Tuning Capacitor Socket,Film / Ceramic Capacitor
+C3,10uF,Radial Electrolytic (D=5mm),P=2.54mm (100mil),10uF 25V+ Bulk Decoupling Capacitor,Miniature Radial Electrolytic
+C4,100nF,Radial Ceramic Disc / MLCC,P=5.08mm (200mil),100nF (0.1uF / code 104) 50V RF Bypass,Ceramic Disc / Multilayer Ceramic
+L1,3.5mH 16x18,Radial Drum Inductor,P=12.0mm (D=16mm),16x18mm 3.5mH I-Type Open Core Radiator,Standard 1618 3.5mH Inductor
+J1,KF301-2P,Screw Terminal Block,P=5.08mm,2-Pin Screw Terminal for External Antenna,Generic KF301-2P 5.08mm
+SW1,6x6mm Switch,Tactile Pushbutton,6.5mm x 4.5mm pin spacing,Bedside Manual Sync Momentary Pushbutton,Standard 6x6x5mm Tactile Switch
+J2,1x4 Header,Pin Header Male/Female,P=2.54mm,I2C Display Expansion Header (GND/3V3/SCL/SDA),Standard 2.54mm Header
+J3,1x2 Header,Pin Header Male,P=2.54mm,External Pushbutton Header (Parallel with SW1),Standard 2.54mm Header
+H1-H4,M3 Holes,Mounting Hole,D=3.2mm (6mm pad),Corner M3 Chassis / Standoff Mounting,Standard M3 Screws / Standoffs

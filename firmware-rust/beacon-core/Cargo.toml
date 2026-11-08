@@ -1,0 +1,10 @@
+[package]
+name = "beacon-core"
+version = "0.1.0"
+edition = "2021"
+description = "Hardware-independent time signal protocols, calendar maths, and configuration for MultiBand 6 ESP32 Beacon"
+publish = false
+
+[dependencies]
+serde = { version = "1.0", default-features = false, features = ["alloc", "derive"] }
+serde_json = { version = "1.0", default-features = false, features = ["alloc"] }

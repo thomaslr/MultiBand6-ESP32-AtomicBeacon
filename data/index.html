@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TimeStation — ESP32 Radio Atomic Clock</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-title-row">
+        <h1>📡 TimeStation</h1>
+        <span class="badge" id="versionBadge">v0.1.0</span>
+      </div>
+      <p>MultiBand 6 Worldwide Radio Atomic Clock Simulator</p>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" id="tabBtnBroadcast" onclick="switchTab('broadcast')">
+        <span>📡</span> Broadcast
+      </button>
+      <button class="tab-btn" id="tabBtnNetwork" onclick="switchTab('network')">
+        <span>📶</span> Network
+      </button>
+      <button class="tab-btn" id="tabBtnOta" onclick="switchTab('ota')">
+        <span>⚡</span> Firmware OTA
+      </button>
+    </div>
+
+    <!-- TAB 1: BROADCAST CONTROL -->
+    <div id="tabContentBroadcast" class="tab-content">
+      <!-- Status Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>Active Status</span>
+          <div id="statusBadge" class="status-indicator status-standby">
+            <span class="status-pulse"></span>
+            <span id="statusText">STANDBY</span>
+          </div>
+        </div>
+
+        <div class="status-grid">
+          <div class="stat-item">
+            <span class="stat-label">Active Station</span>
+            <span class="stat-val" id="activeStation">BPC (China)</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Carrier Frequency</span>
+            <span class="stat-val" id="carrierFreq">68,500 Hz</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Station Local Time</span>
+            <span class="stat-val" id="localClock">--:--:--</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Atomic Reference (UTC)</span>
+            <span class="stat-val" id="utcClock">--:--:--</span>
+          </div>
+        </div>
+
+        <div id="carouselProgressBox" style="display: none; background: var(--input-bg); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+          <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 600;">
+            <span id="carouselStageLabel">Stage 1/3: BPC (68.5 kHz)</span>
+            <span id="carouselTimeRemain" style="color: var(--accent);">14:59 remain</span>
+          </div>
+          <div class="progress-bar" style="display: block; margin-top: 8px;">
+            <div id="carouselProgressBar" class="progress-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button type="button" class="btn btn-success" id="btnTransmit" onclick="triggerTransmit()">▶ Start Broadcast</button>
+          <button type="button" class="btn btn-danger" id="btnStop" onclick="triggerStop()" disabled>⏹ Stop</button>
+        </div>
+      </div>
+
+      <!-- Settings & Configuration Form -->
+      <form id="configForm" class="card" onsubmit="saveBroadcastConfig(event)">
+        <div class="card-title">
+          <span>Broadcast Mode & Stations</span>
+          <button type="button" class="info-btn" onclick="showInfo('Station Modes', '<p><strong>Single Station:</strong> Broadcasts a continuous RF signal on a single frequency (e.g. 68.5 kHz for BPC). Ideal for syncing one watch.</p><p><strong>Carousel Mode:</strong> Rotates sequentially through multiple selected frequencies (e.g. BPC &rarr; WWVB &rarr; JJY60) for a configured duration each, automatically syncing a diverse multi-region watch collection in one session.</p>')">i</button>
+        </div>
+
+        <div class="mode-toggle">
+          <button type="button" class="mode-btn active" id="btnModeSingle" onclick="setBroadcastMode(false)">Single Station</button>
+          <button type="button" class="mode-btn" id="btnModeCarousel" onclick="setBroadcastMode(true)">🔄 Carousel Mode</button>
+        </div>
+
+        <!-- Single Station Section -->
+        <div id="singleStationSection">
+          <div class="form-group">
+            <label for="station">Time Signal Station</label>
+            <select id="station" name="station" onchange="onStationSelectChange()">
+              <option value="0">BPC — China (Shangqiu) - 68.5 kHz</option>
+              <option value="1">WWVB — USA (Fort Collins) - 60.0 kHz</option>
+              <option value="2">MSF — UK (Anthorn) - 60.0 kHz</option>
+              <option value="3">DCF77 — Germany (Mainflingen) - 77.5 kHz</option>
+              <option value="4">JJY40 — Japan East (Fukushima) - 40.0 kHz</option>
+              <option value="5">JJY60 — Japan West (Kyushu) - 60.0 kHz</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="offsetHours">
+              Custom Time Offset (Hours)
+              <button type="button" class="info-btn" onclick="showInfo('Timezone Offset', '<p>Manual hourly shift relative to the station\'s native time. For example, if you are in Singapore (UTC+8) syncing a Japanese watch configured to JJY (UTC+9), set offset to <strong>-1</strong> to display Singapore local time!</p>')">i</button>
+            </label>
+            <input type="number" id="offsetHours" name="offsetHours" min="-12" max="12" value="0">
+          </div>
+        </div>
+
+        <!-- Carousel Multi-Station Section -->
+        <div id="carouselSection" style="display: none;">
+          <div class="form-group">
+            <label>Select Stations in Rotation</label>
+            <div class="station-grid">
+              <label class="station-check"><input type="checkbox" id="car_bpc" value="0" checked onchange="updateCarouselCalc()"> BPC (68.5k)</label>
+              <label class="station-check"><input type="checkbox" id="car_wwvb" value="1" checked onchange="updateCarouselCalc()"> WWVB (60.0k)</label>
+              <label class="station-check"><input type="checkbox" id="car_msf" value="2" onchange="updateCarouselCalc()"> MSF (60.0k)</label>
+              <label class="station-check"><input type="checkbox" id="car_dcf77" value="3" onchange="updateCarouselCalc()"> DCF77 (77.5k)</label>
+              <label class="station-check"><input type="checkbox" id="car_jjy40" value="4" onchange="updateCarouselCalc()"> JJY40 (40.0k)</label>
+              <label class="station-check"><input type="checkbox" id="car_jjy60" value="5" checked onchange="updateCarouselCalc()"> JJY60 (60.0k)</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="carouselDuration">Duration per Station (Minutes)</label>
+            <input type="number" id="carouselDuration" name="carouselDuration" min="1" max="60" value="15" onchange="updateCarouselCalc()">
+          </div>
+
+          <div style="font-size: 13px; color: var(--text-muted); background: var(--input-bg); padding: 10px; border-radius: 8px;">
+            Total Carousel Duration: <strong id="carouselTotalCalc" style="color: var(--accent);">45 minutes</strong> (3 stations &times; 15 min)
+          </div>
+        </div>
+
+        <div class="card-title" style="margin-top: 10px;">Daily Schedule</div>
+
+        <div class="switch-row">
+          <label for="scheduleEnabled" style="margin: 0; cursor: pointer;">Enable Automatic Daily Broadcast</label>
+          <label class="switch">
+            <input type="checkbox" id="scheduleEnabled" name="scheduleEnabled" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="input-row">
+          <div class="form-group" style="flex: 1;">
+            <label for="broadcastTime">Broadcast Start Time</label>
+            <input type="time" id="broadcastTime" name="broadcastTime" value="02:00">
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label for="broadcastDuration">Duration (Min)</label>
+            <input type="number" id="broadcastDuration" name="broadcastDuration" min="1" max="180" value="25">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="btnSaveBroadcast">Save Broadcast Settings</button>
+        <div id="broadcastAlert" class="alert"></div>
+      </form>
+    </div>
+
+    <!-- TAB 2: NETWORK & WI-FI SETTINGS -->
+    <div id="tabContentNetwork" class="tab-content" style="display: none;">
+      <!-- Connection Status Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>Wi-Fi Connection Status</span>
+          <span class="badge badge-green" id="netStatusBadge">Connected</span>
+        </div>
+
+        <div class="status-grid">
+          <div class="stat-item">
+            <span class="stat-label">Connected Network</span>
+            <span class="stat-val" id="netSsid">--</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Signal Quality (RSSI)</span>
+            <span class="stat-val" id="netRssi">-- dBm</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">IP Address</span>
+            <span class="stat-val" id="netIp">--</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">mDNS Hostname</span>
+            <span class="stat-val" id="netMdns">timestation.local</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wi-Fi Configuration Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>Join New Wi-Fi Network</span>
+          <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 12px;" onclick="scanWifiNetworks(this)">🔍 Scan Networks</button>
+        </div>
+
+        <div class="form-group">
+          <label for="scanSelect">Nearby Wi-Fi Networks</label>
+          <select id="scanSelect" onchange="onScanSelect(this.value)">
+            <option value="" disabled selected>Click "Scan Networks" to discover nearby 2.4 GHz APs</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="manualSsidGroup">
+          <label for="wifiSsid">Network SSID</label>
+          <input type="text" id="wifiSsid" placeholder="Enter network SSID">
+        </div>
+
+        <div class="form-group">
+          <label for="wifiPassword">Network Password</label>
+          <div class="password-wrap">
+            <input type="password" id="wifiPassword" placeholder="Enter password (leave blank if open)">
+            <button type="button" class="toggle-pw" onclick="togglePasswordVisibility('wifiPassword', this)">Show</button>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-primary" onclick="saveWifiCredentials()">Save & Connect to Wi-Fi</button>
+      </div>
+
+      <!-- NTP & Radio Optimization Settings -->
+      <form class="card" onsubmit="saveNetworkAdvanced(event)">
+        <div class="card-title">NTP Reference & Radio Tuning</div>
+
+        <div class="form-group">
+          <label for="ntpServer">
+            NTP Time Server
+            <button type="button" class="info-btn" onclick="showInfo('NTP Server', '<p>Network Time Protocol server used by the ESP32 to discipline its internal RTC clock to atomic accuracy. Choose geographically close Stratum-1 servers.</p>')">i</button>
+          </label>
+          <input type="text" id="ntpServer" value="pool.ntp.org">
+          <div style="display: flex; gap: 6px; margin-top: 6px;">
+            <button type="button" class="btn btn-secondary" style="font-size: 11px; padding: 4px 8px;" onclick="setNtpPreset('pool.ntp.org')">pool.ntp.org</button>
+            <button type="button" class="btn btn-secondary" style="font-size: 11px; padding: 4px 8px;" onclick="setNtpPreset('time.google.com')">time.google.com</button>
+            <button type="button" class="btn btn-secondary" style="font-size: 11px; padding: 4px 8px;" onclick="setNtpPreset('time.cloudflare.com')">time.cloudflare.com</button>
+          </div>
+        </div>
+
+        <div class="switch-row">
+          <div>
+            <label style="margin: 0;">Wi-Fi 802.11 Modem-Sleep</label>
+            <span style="font-size: 12px; color: var(--text-muted);">Enables ultra-low power DTIM sleep during standby; automatically pauses during RF broadcast for rail stability.</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="modemSleep" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="switch-row">
+          <div>
+            <label style="margin: 0;">Force 20 MHz Bandwidth (HT20)</label>
+            <span style="font-size: 12px; color: var(--text-muted);">Restricts Wi-Fi baseband to 20 MHz to minimize RF hash and spurious carrier noise.</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="force20mhz" checked>
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label for="txPower">Wi-Fi Max TX Power Level</label>
+          <select id="txPower">
+            <option value="78">78 (~19.5 dBm max - Maximum reach)</option>
+            <option value="68">68 (~17.0 dBm - Standard)</option>
+            <option value="60">60 (~15.0 dBm - Balanced)</option>
+            <option value="44">44 (~11.0 dBm - Low emission)</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Save Radio Settings</button>
+        <div id="netAlert" class="alert"></div>
+      </form>
+
+      <!-- System Maintenance Card -->
+      <div class="card">
+        <div class="card-title">System & Provisioning Actions</div>
+        <p style="font-size: 13px; color: var(--text-muted);">
+          Resetting Wi-Fi clears stored network credentials from NVS flash and immediately launches the setup captive portal hotspot (<code>TimeStation-Setup-XXXX</code>) at <code>192.168.4.1</code>.
+        </p>
+
+        <div class="btn-group">
+          <button type="button" class="btn btn-danger" onclick="resetWifiProvisioning()">🔄 Reset Wi-Fi (Setup Mode)</button>
+          <button type="button" class="btn btn-secondary" onclick="rebootEsp32()">⚡ Reboot ESP32</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: OTA FIRMWARE -->
+    <div id="tabContentOta" class="tab-content" style="display: none;">
+      <div class="card">
+        <div class="card-title">
+          <span>Firmware & Dual-OTA Status</span>
+          <span class="badge" id="otaRollbackBadge">Rollback Safe</span>
+        </div>
+
+        <div class="status-grid">
+          <div class="stat-item">
+            <span class="stat-label">Firmware Version</span>
+            <span class="stat-val" id="otaFirmwareVersion">v0.1.0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Running Flash Slot</span>
+            <span class="stat-val" id="otaRunningSlot">ota_0</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Next Target Slot</span>
+            <span class="stat-val" id="otaNextSlot">ota_1</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Flash Partitioning</span>
+            <span class="stat-val">Dual-OTA (1984 KB)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Remote HTTPS Update -->
+      <div class="card">
+        <div class="card-title">Over-the-Air Update via GitHub Releases</div>
+        <p style="font-size: 13px; color: var(--text-muted);">
+          Streams the latest compiled release binary directly from GitHub into the standby OTA partition over TLS.
+        </p>
+
+        <div class="form-group">
+          <label for="otaUrl">Firmware Binary URL (.bin)</label>
+          <input type="text" id="otaUrl" value="https://github.com/thomaslr/MultiBand6-ESP32-AtomicBeacon/releases/latest/download/multiband6-beacon.bin">
+        </div>
+
+        <button type="button" class="btn btn-primary" id="btnOtaUrl" onclick="triggerOtaFromUrl()">⬇ Download & Flash OTA Update</button>
+        <div id="otaUrlProgress" class="progress-bar">
+          <div class="progress-fill" style="width: 100%; animation: pulse-ring 2s infinite;"></div>
+        </div>
+      </div>
+
+      <!-- Direct Browser File Upload -->
+      <div class="card">
+        <div class="card-title">Direct Browser Binary Upload</div>
+        <p style="font-size: 13px; color: var(--text-muted);">
+          Upload a locally compiled <code>multiband6-beacon.bin</code> file directly to the ESP32.
+        </p>
+
+        <div class="form-group">
+          <input type="file" id="otaFileInput" accept=".bin">
+        </div>
+
+        <button type="button" class="btn btn-secondary" id="btnOtaUpload" onclick="uploadOtaBinary()">📤 Upload & Flash Binary</button>
+        <div id="otaUploadProgress" class="progress-bar">
+          <div id="otaUploadFill" class="progress-fill"></div>
+        </div>
+      </div>
+
+      <div id="otaAlert" class="alert"></div>
+    </div>
+  </div>
+
+  <!-- Popover Information Modal -->
+  <div id="popoverBackdrop" class="popover-backdrop" onclick="hideInfo()"></div>
+  <div id="globalPopover" class="popover-box" role="dialog" aria-hidden="true">
+    <div class="popover-header">
+      <span id="popTitle" class="popover-title">Information</span>
+      <button type="button" class="popover-close" onclick="hideInfo()">&times;</button>
+    </div>
+    <div id="popBody" class="popover-content"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

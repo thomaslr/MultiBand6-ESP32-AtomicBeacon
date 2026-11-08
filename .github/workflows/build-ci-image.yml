@@ -1,0 +1,51 @@
+name: Build CI Image
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/ci/Dockerfile"
+      - ".github/workflows/build-ci-image.yml"
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * 1"
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ci-image-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-ci-image:
+    name: Build and Publish CI Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push CI Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: .github/ci/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/multiband6-beacon-build:latest
+            ghcr.io/${{ github.repository_owner }}/multiband6-beacon-build:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

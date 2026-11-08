@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TimeStation Setup</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #38bdf8;
+      --primary-hover: #0284c7;
+      --border: #334155;
+      --input-bg: #0b1120;
+      --error: #ef4444;
+      --success: #10b981;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --primary: #0284c7;
+        --primary-hover: #0369a1;
+        --border: #cbd5e1;
+        --input-bg: #f1f5f9;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .icon {
+      width: 52px;
+      height: 52px;
+      fill: var(--primary);
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    .form-group {
+      margin-bottom: 18px;
+    }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text);
+    }
+    select, input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 12px;
+      font-size: 15px;
+      background-color: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    select:focus, input:focus {
+      border-color: var(--primary);
+    }
+    .password-wrap {
+      position: relative;
+    }
+    .toggle-pw {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 4px;
+    }
+    .btn {
+      width: 100%;
+      padding: 13px;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      background-color: var(--primary);
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      margin-top: 8px;
+    }
+    .btn:hover:not(:disabled) {
+      background-color: var(--primary-hover);
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .status {
+      margin-top: 14px;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      text-align: center;
+      display: none;
+    }
+    .status.error {
+      background-color: rgba(239, 68, 68, 0.15);
+      color: var(--error);
+      display: block;
+    }
+    .status.success {
+      background-color: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+      display: block;
+    }
+    .success-card {
+      display: none;
+      text-align: center;
+    }
+    .success-card .check-icon {
+      width: 56px;
+      height: 56px;
+      fill: var(--success);
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card" id="setup-card">
+    <div class="header">
+      <svg class="icon" viewBox="0 0 24 24">
+        <path d="M12 2C6.48 2 2 6.48 2 12c0 3.84 2.16 7.18 5.34 8.86l.66-.66C6.28 18.66 5 15.68 5 12c0-3.86 3.14-7 7-7s7 3.14 7 7c0 3.68-1.28 6.66-3 8.2l.66.66C19.84 19.18 22 15.84 22 12c0-5.52-4.48-10-10-10zm0 4a6 6 0 0 0-6 6c0 2.5 1.45 4.67 3.55 5.67L12 15l2.45 2.67C16.55 16.67 18 14.5 18 12a6 6 0 0 0-6-6zm0 2c2.21 0 4 1.79 4 4 0 1.25-.58 2.36-1.5 3.08L12 14.5l-2.5 2.58A3.987 3.987 0 0 1 8 14c0-2.21 1.79-4 4-4z"/>
+      </svg>
+      <h1>TimeStation Wi-Fi Setup</h1>
+      <p class="subtitle">Connect your atomic clock simulator to Wi-Fi so it can sync with atomic Stratum-1 reference time via NTP.</p>
+    </div>
+
+    <form id="wifi-form" onsubmit="handleConnect(event)">
+      <div class="form-group">
+        <label for="ssid-select">Nearby 2.4 GHz Network</label>
+        <select id="ssid-select" onchange="onSsidChange(this.value)">
+          <option value="" disabled selected>Scanning networks...</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="manual-ssid-group" style="display: none;">
+        <label for="manual-ssid">Network Name (SSID)</label>
+        <input type="text" id="manual-ssid" placeholder="Enter network name">
+      </div>
+
+      <div class="form-group">
+        <label for="password">Wi-Fi Password</label>
+        <div class="password-wrap">
+          <input type="password" id="password" placeholder="Enter password (if protected)">
+          <button type="button" class="toggle-pw" onclick="togglePassword()">Show</button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn" id="submit-btn">Save & Connect</button>
+      <div id="status-msg" class="status"></div>
+    </form>
+  </div>
+
+  <div class="card success-card" id="success-card">
+    <svg class="check-icon" viewBox="0 0 24 24">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+    </svg>
+    <h1>Connecting to Network</h1>
+    <p class="subtitle" id="success-desc">
+      Your Wi-Fi details were saved. The setup hotspot will now close.<br><br>
+      Reconnect your phone to your home network, then open <strong>http://timestation.local</strong> in your browser.
+    </p>
+  </div>
+
+  <script>
+    async function scanNetworks() {
+      const select = document.getElementById('ssid-select');
+      try {
+        const res = await fetch('/api/scan');
+        if (!res.ok) throw new Error('Scan failed');
+        const networks = await res.json();
+        
+        select.innerHTML = '<option value="" disabled selected>Select a Wi-Fi network</option>';
+        if (networks && networks.length > 0) {
+          networks.forEach(net => {
+            const opt = document.createElement('option');
+            opt.value = net;
+            opt.textContent = net;
+            select.appendChild(opt);
+          });
+        }
+        const customOpt = document.createElement('option');
+        customOpt.value = '__custom__';
+        customOpt.textContent = '✎ Enter hidden network name...';
+        select.appendChild(customOpt);
+      } catch (err) {
+        select.innerHTML = `
+          <option value="" disabled selected>Select a network</option>
+          <option value="__custom__">✎ Enter network name manually...</option>
+        `;
+        showManualInput(true);
+      }
+    }
+
+    function onSsidChange(val) {
+      showManualInput(val === '__custom__');
+    }
+
+    function showManualInput(show) {
+      document.getElementById('manual-ssid-group').style.display = show ? 'block' : 'none';
+      if (show) document.getElementById('manual-ssid').focus();
+    }
+
+    function togglePassword() {
+      const pw = document.getElementById('password');
+      const btn = document.querySelector('.toggle-pw');
+      if (pw.type === 'password') {
+        pw.type = 'text';
+        btn.textContent = 'Hide';
+      } else {
+        pw.type = 'password';
+        btn.textContent = 'Show';
+      }
+    }
+
+    async function handleConnect(e) {
+      e.preventDefault();
+      const select = document.getElementById('ssid-select');
+      const manual = document.getElementById('manual-ssid');
+      const password = document.getElementById('password').value;
+      const status = document.getElementById('status-msg');
+      const btn = document.getElementById('submit-btn');
+
+      let ssid = select.value === '__custom__' ? manual.value.trim() : select.value;
+      if (!ssid) {
+        status.className = 'status error';
+        status.textContent = 'Please choose or enter a Wi-Fi network.';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+      status.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/provision', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ssid, password })
+        });
+        if (!res.ok) throw new Error('Failed to save');
+
+        document.getElementById('setup-card').style.display = 'none';
+        document.getElementById('success-card').style.display = 'block';
+        document.getElementById('success-desc').innerHTML = 
+          `Saved credentials for <strong>${ssid}</strong>.<br><br>` +
+          `The setup network will now disconnect.<br>` +
+          `Please reconnect to <strong>${ssid}</strong> and open <a href="http://timestation.local" style="color:var(--primary)">http://timestation.local</a>!`;
+      } catch (err) {
+        btn.disabled = false;
+        btn.textContent = 'Save & Connect';
+        status.className = 'status error';
+        status.textContent = 'Failed to save credentials. Please try again.';
+      }
+    }
+
+    window.onload = scanNetworks;
+  </script>
+</body>
+</html>

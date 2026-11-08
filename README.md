@@ -16,7 +16,7 @@ It's still under testing.
 | :--- | :--- | :--- | :--- |
 | **Microcontroller** | **ESP32-C3-Mini** | Core Controller & Carrier Generator | Single-core 32-bit RISC-V (160 MHz), hardware LEDC PWM with fractional clock divider, RTC timer, Wi-Fi 4, BLE 5. |
 | **NPN Transistor** | **C1815 (2SC1815)** | Power Switch / RF Driver (Option A) | Small-signal NPN transistor (TO-92 package, E-C-B pinout) switching the LC tank at 5V for extended 1.0 m+ range. *(Note: You could also use a 2p2222 / 2N2222, but that transistor's different E-B-C pinout must be respected!)* |
-| **Base Resistor ($R_{base}$)** | **$1\text{ k}\Omega$ (1/4 W)** | Transistor Base Drive (Option A) | Connects between GPIO 2 and C1815 Base (Pin 3). Limits base drive current to a safe $\sim 2.6\text{ mA}$ for saturation switching. |
+| **Base Resistor ($R_{base}$)** | **$1\text{ k}\Omega$ (1/4 W)** | Transistor Base Drive (Option A) | Connects between GPIO 1 and C1815 Base (Pin 3). Limits base drive current to a safe $\sim 2.6\text{ mA}$ for saturation switching. |
 | **Inductor ($L$)** | **16×18 3.5mH I-Type Inductor** | Magnetic Antenna ($H$-field radiator) | The reference hardware build specifically uses a **16×18 mm 3.5 mH I-type** (radial drum/bobbin core) power inductor. Its open magnetic circuit allows magnetic dipole flux lines to radiate into the room with low DC resistance. |
 | **Tuning Capacitor ($C$)** | **1.5 nF (1500 pF / code `152`)** | Parallel LC Tank Resonator | Metallized Film (CBB / Polypropylene / Polyester) or C0G/NP0 ceramic. Rated $\ge 50\text{V}$. |
 | **Damping Resistor ($R_{damp}$)** | **$220\,\Omega$ (1/4 W)** | Bandwidth Broadening & Safety Current Limiter | Lowers tank $Q$ to $\sim 6.5$, broadening bandwidth to $\sim 10\text{ kHz}$. Limits peak current to $\approx 23\text{ mA}$ in transistor booster or $\approx 15\text{ mA}$ in direct GPIO drive. |
@@ -28,18 +28,28 @@ It's still under testing.
 
 ### Default Pin Assignment & ESP32-C3 SuperMini Pinout
 
-The firmware defaults to **GPIO 2** for the antenna carrier output (`#define ANTENNA_PIN 2` in `src/main.cpp`).
+The firmware defaults to **GPIO 1** for the antenna carrier output (`#define ANTENNA_PIN 1` in `src/main.cpp`).
 
 | Board Pin | ESP32-C3 Signal | Role | Circuit Connection |
 | :--- | :--- | :--- | :--- |
-| **GPIO 2** | `IO2` (LEDC Ch 0) | **Default RF Carrier Out** | Connects to base resistor ($1\text{ k}\Omega$) driving C1815 Base (Pin 3), or DC-blocking cap ($1\,\mu\text{F}$) for direct GPIO |
-| **5V / VIN** | `VBUS` (USB 5V) | Primary Power Rail | Supplies the C1815 booster circuit & damping resistor |
-| **GND** | `GND` | Common Ground Return | Connects to C1815 transistor Emitter (Pin 1) and breadboard ground rail |
+| **GPIO 1** | `IO1` (LEDC Ch 0) | **Default RF Carrier Out** | Connects to base resistor ($1\text{ k}\Omega$) driving booster NPN transistor, or direct antenna |
+| **GPIO 2** | `IO2` | *(Unconnected)* | Strapping pin on ESP32-C3; reserved to prevent USB flashing and cold-boot issues |
+| **GPIO 3** | `IO3` (Active LOW) | **Manual Sync Pushbutton** | Connects to tactile button `SW1` / external header `J3` with 10 kΩ pull-up |
+| **GPIO 4** | `IO4` (I2C SDA) | **I2C Expansion (OLED)** | Connects to `J2` Pin 4 with 4.7 kΩ pull-up for 0.96" SSD1306 OLED display |
+| **GPIO 5** | `IO5` (I2C SCL) | **I2C Expansion (OLED)** | Connects to `J2` Pin 3 with 4.7 kΩ pull-up for 0.96" SSD1306 OLED display |
+| **GPIO 8** | `IO8` (Active LOW) | **Onboard Status LED** | Breathing nightstand pulse during active broadcast; 100% dark in standby |
+| **5V / VIN** | `VBUS` (USB 5V) | Primary Power Rail | Supplies the booster circuit & damping resistor |
+| **GND** | `GND` | Common Ground Return | Connects to transistor Emitter, capacitor ground, and ground plane |
 
-> **Why GPIO 2?**
+> [!TIP]
+> **Custom PCBs Available:**
+> - **SMT Carrier Board (58×36 mm):** Located in [`pcb/smd/`](pcb/smd/) (or symlink [`smd/`](smd/)), uses 100% JLCPCB Basic Components ($0 setup fees) for fast turnkey assembly.
+> - **Through-Hole DIY Edition (70×46 mm):** Located in [`pcb/hole-through/`](pcb/hole-through/) (or symlink [`hole-through/`](hole-through/)), 100% hand-solderable with standard through-hole passives, TO-92 transistor, DO-41 diode, and M3 mounting holes. Zero SMD parts required. See [`hole-through/README.md`](hole-through/README.md) for BOM and build guide.
+
+> **Why GPIO 1?**
+> * **Boot & Flashing Safety:** On the ESP32-C3, GPIO 2, 8, and 9 are hardware strapping pins. Pulling GPIO 2 low (which occurs when driving an NPN transistor base to ground) prevents entering Download Boot mode over USB and causes boot lockups. **GPIO 1 is a pure GPIO/ADC with zero strapping functions**, allowing reliable cold boots and in-circuit flashing over USB.
 > * **LEDC Peripheral:** Native hardware routing to LEDC channel 0 with fractional divider clocking.
-> * **Boot Stability:** Not a bootstrapping/strapping pin that interferes with USB flashing, serial upload, or cold boot.
-> * **Physical Placement:** Located on the accessible edge header of both the compact **ESP32-C3 SuperMini** and standard **ESP32-C3-DevKitM-1** boards.
+> * **Physical Placement:** Located on the accessible edge header directly adjacent to Pin 6 on the **ESP32-C3 SuperMini** (Pin 7).
 
 ```
       TOP VIEW (Component Side — looking at chip & buttons)
@@ -50,8 +60,8 @@ The firmware defaults to **GPIO 2** for the antenna carrier output (`#define ANT
               GPIO 7   │ [ ]       [ ] │   3V3 (3.3)   <── Regulated 3.3V
               GPIO 8   │ [ ]       [ ] │   GPIO 4
               GPIO 9   │ [ ]       [ ] │   GPIO 3
-             GPIO 10   │ [ ]       [■] │   GPIO 2      <── [■] ANTENNA OUT (Pin 6)
-             GPIO 20   │ [ ]       [ ] │   GPIO 1
+             GPIO 10   │ [ ]       [ ] │   GPIO 2
+             GPIO 20   │ [ ]       [■] │   GPIO 1      <── [■] ANTENNA OUT (Pin 7)
    (Pin 21)  GPIO 21   │ [ ]       [ ] │   GPIO 0      (Pin 0)
                        └──[ Antenna ]──┘
 
@@ -63,8 +73,8 @@ The firmware defaults to **GPIO 2** for the antenna carrier output (`#define ANT
             3V3 (3.3)  │ [ ]       [ ] │   GPIO 7
                GPIO 4  │ [ ]       [ ] │   GPIO 8
                GPIO 3  │ [ ]       [ ] │   GPIO 9
-   ANTENNA OUT ──────► │ [■]       [ ] │   GPIO 10
-               GPIO 1  │ [ ]       [ ] │   GPIO 20
+               GPIO 2  │ [ ]       [ ] │   GPIO 10
+   ANTENNA OUT ──────► │ [■]       [ ] │   GPIO 20
      (Pin 0)   GPIO 0  │ [ ]       [ ] │   GPIO 21     (Pin 21)
                        └───────────────┘
 ```
@@ -89,7 +99,7 @@ This configuration uses the **C1815 (2SC1815) NPN** transistor powered directly 
                                                  │
                                                  ▼
                                           [ C ] Collector (Pin 2)
-   ESP32-C3 GPIO 2 ──[ 1k ohm ]────────── [ B ] Base (Pin 3)       C1815 NPN Transistor
+   ESP32-C3 GPIO 1 ──[ 1k ohm ]────────── [ B ] Base (Pin 3)       C1815 NPN Transistor
    (Default PWM Out) (R_base)             [ E ] Emitter (Pin 1)
                                                  │
                                                  ▼
@@ -97,7 +107,7 @@ This configuration uses the **C1815 (2SC1815) NPN** transistor powered directly 
 ```
 
 #### Why This Works Well:
-1. **Zero Stress on ESP32:** The GPIO 2 pin only sources a safe $I_B \approx 2.6\text{ mA}$ into the base through the $1\text{ k}\Omega$ base resistor ($V_{GPIO} = 3.3\text{V}$, $V_{BE} \approx 0.7\text{V}$).
+1. **Zero Stress on ESP32:** The GPIO 1 pin only sources a safe $I_B \approx 2.6\text{ mA}$ into the base through the $1\text{ k}\Omega$ base resistor ($V_{GPIO} = 3.3\text{V}$, $V_{BE} \approx 0.7\text{V}$).
 2. **5V Swing:** The LC tank swings around the 5V rail rather than 3.3V, pushing significantly more magnetic current through the 3.5 mH inductor.
 3. **Uses Your $220\,\Omega$ Resistor:** The $220\,\Omega$ damping resistor limits peak collector current to a cool, safe $\approx 23\text{ mA}$ while maintaining the broad $\sim 10.7\text{ kHz}$ bandwidth so 68.5 kHz BPC resonates smoothly.
 4. **Broadcast Range:** Up to **1.0 m – 1.2 m**.
@@ -123,10 +133,10 @@ Looking at the **flat printed face** (labeled "C1815") with the leads pointing d
 | :---: | :--- | :--- | :--- |
 | **Pin 1 (Left)** | **Emitter (E)** | Common Ground Return | Connects directly to **(-) Blue GND Rail** (Row 13) |
 | **Pin 2 (Center)** | **Collector (C)** | Switched LC Tank Low Side | Connects to **Row 12** (bottom of 3.5 mH inductor & 1.5 nF cap) |
-| **Pin 3 (Right)** | **Base (B)** | RF Carrier PWM Input | Connects to **Row 11** (receives drive from GPIO 2 via $1\text{ k}\Omega$ resistor) |
+| **Pin 3 (Right)** | **Base (B)** | RF Carrier PWM Input | Connects to **Row 11** (receives drive from GPIO 1 via $1\text{ k}\Omega$ resistor) |
 
 > [!NOTE]
-> **Orientation Tip:** Because **Base is Pin 3 (Right)** on the C1815, mounting the transistor with its flat face facing right puts Pin 3 (Base) at **Row 11**, directly adjacent to ESP32 GPIO 2 (Row 6). This allows the $1\text{ k}\Omega$ base resistor to bridge Rows 6 and 11 neatly without any crossing wires.
+> **Orientation Tip:** Because **Base is Pin 3 (Right)** on the C1815, mounting the transistor with its flat face facing right puts Pin 3 (Base) at **Row 11**, directly adjacent to ESP32 GPIO 1 (Row 7). This allows the $1\text{ k}\Omega$ base resistor to bridge Rows 7 and 11 neatly without any crossing wires.
 
 > [!WARNING]
 > **Can you use a 2p2222 (2N2222 / PN2222) instead?**
@@ -137,7 +147,7 @@ Looking at the **flat printed face** (labeled "C1815") with the leads pointing d
 > * **2p2222 / 2N2222 (American / JEDEC TO-92):** `Pin 1 = Emitter (E) | Pin 2 = Base (B) | Pin 3 = Collector (C)` — **E - B - C**
 >
 > **Crucial wiring differences to respect when using 2p2222:**
-> 1. **Base pin location is swapped:** On a 2p2222, **Base is the middle pin (Pin 2)** instead of Pin 3. The $1\text{ k}\Omega$ base resistor from GPIO 2 must be routed to **Pin 2 (Center)**.
+> 1. **Base pin location is swapped:** On a 2p2222, **Base is the middle pin (Pin 2)** instead of Pin 3. The $1\text{ k}\Omega$ base resistor from GPIO 1 must be routed to **Pin 2 (Center)**.
 > 2. **Collector pin location is swapped:** On a 2p2222, **Collector is the right pin (Pin 3)** instead of Pin 2. The LC tank low side must be routed to **Pin 3 (Right)**.
 > 3. **Emitter:** Pin 1 (Left) remains Emitter (GND) on both transistors.
 >
@@ -145,19 +155,19 @@ Looking at the **flat printed face** (labeled "C1815") with the leads pointing d
 
 | Transistor Model | Pinout Standard | Pin 1 (Left) | Pin 2 (Center) | Pin 3 (Right) | Required Wiring in this Circuit |
 | :--- | :---: | :---: | :---: | :---: | :--- |
-| **C1815 (Default)** | **JIS (E-C-B)** | **Emitter (E)** | **Collector (C)** | **Base (B)** | Pin 1 $\rightarrow$ GND, Pin 2 $\rightarrow$ LC Tank (Row 12), Pin 3 $\rightarrow$ $1\text{ k}\Omega$ to GPIO 2 (Row 11) |
-| **2p2222 / 2N2222 (Alternative)** | **JEDEC (E-B-C)** | **Emitter (E)** | **Base (B)** | **Collector (C)** | Pin 1 $\rightarrow$ GND, Pin 2 $\rightarrow$ $1\text{ k}\Omega$ to GPIO 2, Pin 3 $\rightarrow$ LC Tank *(Pinout must be respected!)* |
+| **C1815 (Default)** | **JIS (E-C-B)** | **Emitter (E)** | **Collector (C)** | **Base (B)** | Pin 1 $\rightarrow$ GND, Pin 2 $\rightarrow$ LC Tank (Row 12), Pin 3 $\rightarrow$ $1\text{ k}\Omega$ to GPIO 1 (Row 11) |
+| **2p2222 / 2N2222 (Alternative)** | **JEDEC (E-B-C)** | **Emitter (E)** | **Base (B)** | **Collector (C)** | Pin 1 $\rightarrow$ GND, Pin 2 $\rightarrow$ $1\text{ k}\Omega$ to GPIO 1, Pin 3 $\rightarrow$ LC Tank *(Pinout must be respected!)* |
 
 ---
 
 ### Option B: Direct GPIO Drive (Minimalist Bench / Desk Use)
 
-This configuration connects directly to ESP32-C3 GPIO 2 with built-in safety against DC overcurrent and back-EMF spikes:
+This configuration connects directly to ESP32-C3 GPIO 1 with built-in safety against DC overcurrent and back-EMF spikes:
 
 ```
                            C_block       R_damp
                           [ 1 uF ]     [ 220 ohm ]
-  ESP32-C3 GPIO 2 ---------[ || ]--------[ \/\/\ ]---------+-----------------+
+  ESP32-C3 GPIO 1 ---------[ || ]--------[ \/\/\ ]---------+-----------------+
   (Default PWM Out)                                        |                 |
                                                         +------+          +------+
                                                         |      |          |      |
@@ -186,7 +196,7 @@ This configuration connects directly to ESP32-C3 GPIO 2 with built-in safety aga
 
 ### Breadboard Wiring Layout (C1815 NPN Booster Circuit)
 
-> 🎨 **Visual Diagram:** A full vector graphic illustration is available in [breadboard_layout.svg](breadboard_layout.svg) or viewable in your browser via [breadboard_layout.html](breadboard_layout.html).
+> 🎨 **Visual Diagram:** A full vector graphic illustration is available in [breadboard_layout.svg](pcb/breadboard/breadboard_layout.svg) or viewable in your browser via [breadboard_layout.html](pcb/breadboard/breadboard_layout.html). (See also [`pcb/breadboard/`](pcb/breadboard/)).
 
 Here is the top-down terminal row mapping for a standard breadboard with the **ESP32-C3 SuperMini mounted directly across the center ravine**:
 
@@ -201,11 +211,11 @@ Here is the top-down terminal row mapping for a standard breadboard with the **E
    03:    [ . . . . . ] ── [ Rows   ] ── [ 3V3 ] [ . . . . ]
    04:    [ . . . . . ] ── [ 1 to 8 ] ── [ IO4 ] [ . . . . ]
    05:    [ . . . . . ] ── [ across ] ── [ IO3 ] [ . . . . ]
-   06:    [ . . . . . ] ── [ ravine ] ── [ IO2 ] [ . . . . ] ── [ 1k R_base ]
-   07:    [ . . . . . ] ── [        ] ── [ IO1 ] [ . . . . ]          │
+   06:    [ . . . . . ] ── [ ravine ] ── [ IO2 ] [ . . . . ]
+   07:    [ . . . . . ] ── [        ] ── [ IO1 ] [ . . . . ] ── [ 1k R_base ]
    08:    [ . . . . . ] ── [        ] ── [ IO0 ] [ . . . . ]          │
                                                                       │
-   11:    [ . . . . . ]                  [ . . . . . ] ── C1815 BASE (B, Pin 3) ◄─┘ (Closest to IO2!)
+   11:    [ . . . . . ]                  [ . . . . . ] ── C1815 BASE (B, Pin 3) ◄─┘ (Closest to IO1!)
    12:    [ . . . . . ]                  [ . . . . . ] ── C1815 COLLECTOR (C, Pin 2)
                                                │
                                        ┌───────┴───────────────┐
@@ -226,20 +236,20 @@ Here is the top-down terminal row mapping for a standard breadboard with the **E
 1. **Mount the ESP32-C3 SuperMini:**
    * Plug the module directly into **Rows 1 to 8** spanning the center ravine:
      * **Column E (Left):** GPIO 5 down to GPIO 21 (all left pins open).
-     * **Column F (Right):** Pin **F1 = 5V**, **F2 = GND**, Pin **F6 = GPIO 2 (Antenna Out)**.
+     * **Column F (Right):** Pin **F1 = 5V**, **F2 = GND**, Pin **F7 = GPIO 1 (Antenna Out)**.
 2. **Power Rails:**
    * Add a short red jumper wire from **Row 1 (Col G)** to the **(+) Red Rail**.
    * Add a short black jumper wire from **Row 2 (Col G)** to the **(-) Blue Rail**.
 3. **C1815 NPN Transistor (JIS E-C-B Pinout):**
    * Plug into **Rows 11, 12, and 13** in Column G with the **flat printed face facing right** (curved dome to the left):
-     * **Row 11 = Base (B, Pin 3)** $\rightarrow$ Closest to GPIO 2; receives base drive from the $1\text{ k}\Omega$ resistor.
+     * **Row 11 = Base (B, Pin 3)** $\rightarrow$ Closest to GPIO 1; receives base drive from the $1\text{ k}\Omega$ resistor.
      * **Row 12 = Collector (C, Pin 2)** $\rightarrow$ Switched output; connects to the parallel LC tank low side.
      * **Row 13 = Emitter (E, Pin 1)** $\rightarrow$ Add a short black jumper from Row 13 (Col I) to the **(-) Blue GND Rail**.
    > [!NOTE]
-   > **Note on substituting a 2p2222 (2N2222 / PN2222):** You could use a 2p2222 / 2N2222 instead, but you must respect that transistor's different **E-B-C** pinout: its center pin (Pin 2) is Base and its right pin (Pin 3) is Collector. If substituted, the $1\text{ k}\Omega$ resistor from GPIO 2 must go to the center pin (Base), and the LC tank must connect to the right pin (Collector).
+   > **Note on substituting a 2p2222 (2N2222 / PN2222):** You could use a 2p2222 / 2N2222 instead, but you must respect that transistor's different **E-B-C** pinout: its center pin (Pin 2) is Base and its right pin (Pin 3) is Collector. If substituted, the $1\text{ k}\Omega$ resistor from GPIO 1 must go to the center pin (Base), and the LC tank must connect to the right pin (Collector).
 4. **Base Drive Resistor ($1\text{ k}\Omega$):**
-   * Plug one leg of the **$1\text{ k}\Omega$ resistor** into **Row 6 (Col I)** (directly taps ESP32 GPIO 2).
-   * Plug the other leg into **Row 11 (Col I)** (directly taps the C1815 Base, Pin 3). No loose wires required!
+   * Plug one leg of the **$1\text{ k}\Omega$ resistor** into **Row 7 (Col I)** (directly taps ESP32 GPIO 1).
+   * Plug the other leg into **Row 11 (Col I)** (directly taps the C1815 Base, Pin 3). Clean direct bridge without crossing wires!
 5. **LC Tank (Parallel Inductor + Capacitor):**
    * Plug the **1.5 nF Capacitor** across **Row 12 (Col F)** and **Row 16 (Col F)** (inner position, towards center ravine for clearance).
    * Plug the **16×18 3.5mH I-type Inductor** across **Row 12 (Col H)** and **Row 16 (Col H)** (outer position, nearer breadboard edge for maximum RF radiation & easy watch placement).
@@ -248,7 +258,25 @@ Here is the top-down terminal row mapping for a standard breadboard with the **E
    * Plug the other leg directly into the **(+) Red 5V Rail**.
 ---
 
+### Custom PCB Carrier Board (JLCPCB SMT-Ready)
 
+For a permanent, enclosure-friendly installation, a production-grade 2-layer carrier PCB is provided in the [`pcb/`](pcb/) folder:
+
+| 3D Perspective | Top Layout View |
+|:---:|:---:|
+| <img src="pcb/MultiBand6_Beacon_3D_Isometric.png" width="400" alt="3D Isometric View" /> | <img src="pcb/MultiBand6_Beacon_Top.png" width="400" alt="Top View" /> |
+
+* **Form Factor:** Clean **58 mm × 36 mm** with 4× M2.5 corner mounting holes.
+* **100% Free JLCPCB SMT Setup ($0.00 Part Loading Fee):** Pre-assembled with only 7 SMD components (MMBT2222A NPN switch, flyback clamp diode, 0805 resistors/capacitors) — all verified **JLCPCB Basic Components**.
+* **Zero Bedside Light Pollution:** No LEDs on the carrier PCB to keep the bedroom dark at night. The ESP32-C3 SuperMini's onboard blue LED (GPIO 8) handles the soft breathing rhythm during active broadcasts while remaining completely dark in standby.
+* **Dual Antenna & Tuning Flexibility:**
+  * Solder the **16×18 mm 3.5 mH I-type inductor** directly into the labeled onboard footprint (`L1`).
+  * Connect an external ferrite rod or loop antenna via the dedicated **2-pin screw terminal block** (`J1`, KF301-2P, 5.08 mm pitch), located well clear of `L1` for easy screwdriver and wire access.
+  * Fine-tune or customize tank resonance via the **through-hole capacitor socket** (`C2`, standard 5.08 mm pitch for film/ceramic caps).
+* **Instant Ordering:** Pre-generated Gerber archive (`MultiBand6_Beacon_Gerbers.zip`), BOM (`bom.csv`), and centroid placement (`positions.csv`) files are ready to drag-and-drop into [JLCPCB](https://jlcpcb.com/).
+* See the [**PCB Ordering & Assembly Guide**](pcb/README.md) for full instructions.
+
+---
 
 ## 3. Physical Antenna Alignment & Orientation
 
@@ -275,71 +303,118 @@ Here is the top-down terminal row mapping for a standard breadboard with the **E
 
 ---
 
-## 5. Software Stack & Architecture
+## 5. Software Stack & 100% Rust Architecture
 
-### Recommended Language & Framework: **Arduino C++ (PlatformIO / Arduino IDE)**
-* **Direct C Code Portability:** Reuses proven transmission bitstream engines directly from [`kangtastic/timestation`](https://github.com/kangtastic/timestation) (`timesignal.c`, `waveform.h`, `datetime.h`).
-* **Hardware Fractional Divider:** Native access to the ESP32-C3 `LEDC` peripheral via the 80 MHz APB clock:
-  $$\text{LEDC Frequency Error} < 0.0005\%$$
-* **Constant 80 MHz Low-Power Clock Architecture:**
-  * **Zero Clock Overhead (Constant 80 MHz):** The CPU remains at a cool, efficient 80 MHz at all times. Because the ESP32-C3 APB peripheral bus clock is locked at 80 MHz, the hardware LEDC timer produces the exact same fractional-accuracy PWM carrier at 80 MHz as it would at 160 MHz.
-  * **24/7 Web Standby:** Engages 802.11 Modem-Sleep (`WiFi.setSleep(true)`), keeping the web server and mDNS responder (`http://timestation.local`) accessible 24/7 at ~15–20 mA average current.
-  * **Clean Broadcast Rail:** Automatically pauses Wi-Fi sleep (`WiFi.setSleep(false)`) during active broadcasts to keep the 3.3V power rail flat and ripple-free for the LC antenna.
-  * **Optional Deep Sleep:** Supports true battery-powered deep sleep with RTC timer wakeup (`esp_deep_sleep_start()`) drawing $\sim 5\,\mu\text{A}$.
-* **Zero Jitter:** Deterministic interrupt-driven or hardware-timer pulse modulation without Python Garbage Collection (GC) pauses.
+This project is written in **100% pure Rust** targeting `riscv32imc-esp-espidf` using the official Espressif `esp-idf-svc` and `embedded-svc` framework. All legacy C++ and PlatformIO code has been eliminated.
 
----
-
-## 6. System Operating Cycle & Power Flow
-
-```
-[ Power On / Boot ]
-        │
-        ▼
-[ Read Flash Preferences (NVS) ]
-        │
-        ├───(No Saved Wi-Fi)────────► [ Start SoftAP "TimeStation-Setup" ]
-        │                                         │
-        ▼ (Saved Wi-Fi Found)                     ▼
- [ Connect to Wi-Fi ] ────────────────► [ Web Setup & Config Portal ]
-        │
-        ▼
- [ Synchronize NTP Time ]
-        │
-        ▼
- ┌─────────────────────────────────────────────────────────────┐
- │            24/7 Ultra-Low-Power Standby Mode                │
- │  • CPU running at constant 80 MHz (cool & efficient)        │
- │  • 802.11 Modem-Sleep enabled (~15-20 mA)                   │
- │  • Web Dashboard & mDNS (timestation.local) live 24/7       │
- │  • FreeRTOS yields idle time slices                         │
- └──────────────────────────────┬──────────────────────────────┘
-                                │
-          ┌─────────────────────┴─────────────────────┐
-          │                                           │
-          ▼ (Scheduled Time OR "Broadcast Now")       ▼ (User Opens Browser)
- ┌──────────────────────────────────────────┐  ┌───────────────────────────┐
- │        Atomic Broadcast Active           │  │    Serve HTTP Web UI      │
- │  • CPU at 80 MHz (80 MHz APB Bus PWM)    │  │  • Real-time NTP clock    │
- │  • Wi-Fi Sleep paused (clean 3.3V rail)  │  │  • Station selector       │
- │  • 50ms tick ISR modulates carrier       │  │  • Offset & duration cfg  │
- │  • Duration: 5 - 30 minutes              │  └───────────────────────────┘
- └────────────────────┬─────────────────────┘
-                      │
-                      ▼ (Broadcast Finishes)
- [ Re-enable Wi-Fi Modem-Sleep Standby ]
-```
+### Architecture Overview
+* **`firmware-rust/beacon-core`**: A hardware-independent library containing the atomic time signal protocols (`BPC`, `WWVB`, `MSF`, `DCF77`, `JJY40`, `JJY60`), astronomical calendar math, and configuration schemas. Can be tested natively on macOS/Linux with standard `cargo test`.
+* **`firmware-rust/beacon-firmware`**: The embedded binary running on the ESP32-C3:
+  * **LEDC Hardware Carrier**: Modulates the RF magnetic carrier on **GPIO 1** with fractional divider precision at 80 MHz.
+  * **High-Resolution 50ms Timer**: Drives the bitstream tick pulses with microsecond precision.
+  * **Status LED Nightstand Breathing Wave**: Smooth 4.0-second sine wave on GPIO 8 during active transmission; 100% dark in standby.
+  * **Bedside Manual Sync Button**: Tactile button on GPIO 3 (Active LOW) with software debounce.
+  * **Embedded Web UI**: Pre-compresses assets with Gzip at build time, serving both raw and `.gz` payloads.
 
 ---
 
-## 7. Web Interface Features & Multi-Station Carousel
+## 6. Flash Partitioning & Mandatory Dual-OTA Updates
+
+> [!IMPORTANT]
+> **Dual-OTA Partitioning is strictly mandatory.** The partition table must NEVER revert to a single-partition or factory-only layout.
+
+The ESP32-C3 4MB SPI Flash is partitioned into two identical application slots (`ota_0` and `ota_1`), enabling seamless remote updates with automatic crash rollback:
+
+```csv
+# ESP-IDF Partition Table for 4MB Flash Dual-OTA (1984KB per slot)
+# Name,   Type, SubType, Offset,   Size,     Flags
+nvs,      data, nvs,     0x9000,   0x6000,
+otadata,  data, ota,     0xf000,   0x2000,
+phy_init, data, phy,     0x11000,  0x1000,
+ota_0,    app,  ota_0,   0x20000,  0x1f0000,
+ota_1,    app,  ota_1,   0x210000, 0x1f0000,
+```
+
+* **Capacity**: Each application slot provides **1,984 KB** (2,031,616 bytes) of flash space.
+* **Bootloader Rollback**: `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y` ensures that if a newly flashed binary panics or crashes on boot, the bootloader automatically reverts to the previous working slot.
+* **Update Methods**:
+  * **Remote HTTPS Streaming**: Direct download from GitHub Releases via `/api/ota/update`.
+  * **Direct Browser Upload**: Drag-and-drop or file upload of local `multiband6-beacon.bin` via `/api/ota/upload`.
+
+---
+
+## 7. Wi-Fi Resilience, Power & SoftAP Provisioning
+
+Learned from the `plant-esp32` architecture:
+
+### 1. WPA3-SAE Stale Session Recovery
+Modern routers and mesh nodes (e.g. TP-Link Deco, ASUS AiMesh) frequently reject immediate reconnections after a restart (`reason: 0x600`). The firmware implements a 10-attempt retry loop with complete radio cycling before falling back.
+
+### 2. First-Time SoftAP Provisioning & Captive Portal
+* If no credentials exist in NVS (or connection attempts fail), the device automatically starts SoftAP `TimeStation-Setup-XXXX` (using the last 4 characters of the MAC) at **192.168.4.1**.
+* Mobile devices opening the hotspot are automatically greeted by the captive portal (`setup.html`).
+* Users can scan nearby 2.4 GHz networks (`/api/scan`), pick their SSID, enter their password, and reboot the device directly into station mode.
+* **5-Minute Self-Healing Recovery Timer**: If credentials exist in NVS but the router was temporarily power-cycled, the beacon automatically reboots every 5 minutes in setup mode to reconnect once the router recovers.
+
+### 3. RF Noise Suppression & Power Hygiene
+* **Standby Mode**: 802.11 Modem-Sleep (`WIFI_PS_MIN_MODEM`) and 80 MHz CPU clock minimize power consumption (~15–20 mA average).
+* **Broadcast Mode**: Modem-sleep is paused during active LF carrier transmission to eliminate 3.3V rail ripple and 2.4 GHz RF burst hash that could interfere with wristwatch antenna correlation.
+* **Bandwidth & Power**: Station radio locked to 20 MHz (HT20) with configurable TX power up to 78 (~19.5 dBm max).
+* **mDNS Responder**: Device is accessible at `http://timestation.local`.
+
+---
+
+## 8. Web Dashboard & Dedicated Network Settings
 
 The ESP32-C3 hosts an embedded single-page responsive web dashboard (`http://timestation.local`):
 
-### 1. Operating Modes
-* **Single Station Mode:** Broadcasts continuously on a chosen station (BPC, WWVB, MSF, DCF77, JJY40, JJY60) for a configured duration.
-* **Multi-Station Carousel Mode ("World Tour"):** Automatically sequences through multiple selected stations during the scheduled broadcast window so all watches in the room sync regardless of which regional home city they are configured for:
-  * Select any combination of stations via checkboxes (e.g. BPC 68.5 kHz $\rightarrow$ JJY60 60.0 kHz $\rightarrow$ WWVB 60.0 kHz).
+### 1. Broadcast Control Tab
+* **Single Station Mode:** Continuous broadcast on BPC, WWVB, MSF, DCF77, JJY40, or JJY60.
+* **Carousel Mode ("World Tour"):** Rotates through selected stations (e.g. BPC $\rightarrow$ WWVB $\rightarrow$ JJY60) with clean `:00` minute-boundary carrier handoffs.
+* **Live Clocks:** Displays live synchronized UTC atomic time and local station time.
+* **Daily Schedule:** Configurable start time (e.g. `02:00 AM`) and duration.
+
+### 2. Network & Wi-Fi Settings Tab
+* **Active Status:** Live SSID, IP address, Gateway, RSSI signal meter, MAC address, and mDNS name.
+* **Nearby Wi-Fi Scanner:** Discovers nearby 2.4 GHz access points with signal strength.
+* **Credentials Management:** Save new Wi-Fi credentials with show/hide password toggle.
+* **NTP Server Configuration:** Select or customize atomic time server (`pool.ntp.org`, `time.google.com`, `time.cloudflare.com`).
+* **Radio Tuning:** Toggle modem-sleep, select max TX power (78 / 68 / 60 / 44), and toggle HT20 mode.
+* **Maintenance:** One-click "Reset Wi-Fi (Setup Mode)" and "Reboot ESP32" buttons.
+
+### 3. Firmware & OTA Tab
+* Real-time partition status (running slot, target slot, package version, rollback safety).
+* Remote update trigger from URL (GitHub Releases).
+* Direct browser file upload with live progress bar.
+
+---
+
+## 9. Building & Continuous Integration (Docker & GitHub Actions)
+
+### Containerized GitHub Actions CI/CD
+Like the `plant-esp32` project, release builds are completely automated using containerized GitHub Actions:
+* **CI Image Dockerfile**: Located at `.github/ci/Dockerfile`, pre-packages Ubuntu 24.04 with pinned `nightly-2026-04-01`, `rust-src`, `ldproxy`, and `espflash`.
+* **Build Workflow**: `.github/workflows/build-and-release.yml` compiles release binaries on tag pushes (`v*`) or manual dispatch, verifies binary size against the 1984 KB OTA limit, generates `version.json`, and attaches release assets.
+
+### Local Development Commands
+
+```bash
+# 1. Run core protocol unit tests on host machine (macOS/Linux)
+cargo test --package beacon-core --target aarch64-apple-darwin
+
+# 2. Build release firmware binary for ESP32-C3
+cd firmware-rust/beacon-firmware
+cargo build --release
+
+# 3. Flash to ESP32-C3 over USB
+espflash flash --monitor target/riscv32imc-esp-espidf/release/beacon-firmware
+
+# 4. Generate standalone flashable binary (.bin)
+espflash save-image --chip esp32c3 \
+  --partition-table partitions.csv \
+  ../target/riscv32imc-esp-espidf/release/beacon-firmware \
+  multiband6-beacon.bin
+```
   * Configurable duration per station (e.g. 15 minutes per station $\times$ 3 stations = 45-minute nightly window).
   * **Clean Minute Boundary Handoff:** The ESP32-C3 hardware LEDC timer retunes carrier frequency dynamically on the fly at the exact `:00` second mark, ensuring no watch receiver encounters truncated minute frames.
   * Live dashboard displays active carousel stage and real-time countdown timers.
@@ -353,7 +428,7 @@ Every setting and hardware parameter includes an interactive `ℹ` info icon pow
   * **Time Signal Stations:** Frequencies, regions, and matching Casio city codes (`BPC` $\rightarrow$ HKG/BJS, `WWVB` $\rightarrow$ NYC/LAX, `MSF` $\rightarrow$ LON, `DCF77` $\rightarrow$ BER/PAR/ROM/ATH, `JJY` $\rightarrow$ TYO).
   * **Broadcast Duration:** Explains why 20–25 minutes is optimal for Casio correlation.
   * **Overnight Calibration:** Explains why Casio watches default to searching at 2:00 AM.
-  * **Antenna Pin (GPIO 2):** Explains the LEDC PWM carrier, C1815 driver, and tuned LC tank.
+  * **Antenna Pin (GPIO 1):** Explains the LEDC PWM carrier, C1815 driver, and tuned LC tank.
   * **NTP Time Server:** Explains Stratum-1/Stratum-2 atomic clock routing.
 
 ### 3. Timezone Offset: Mechanics & World Time Limits

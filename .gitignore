@@ -1,16 +1,19 @@
-# PlatformIO build artifacts
-.pio/
-.vscode/
+# Rust build artifacts
+firmware-rust/target/
+firmware-rust/**/.embuild/
+*.bin
+version.json
+release_notes.md
 
-# Build outputs & binaries
-*.o
-*.out
-test_native/test_encoder
-
-# Environment and secrets
+# Secrets and environment files
+firmware-rust/beacon-firmware/src/secrets.rs
 .env
 .env.*
 !.env.example
+
+# Editor & IDE configs
+.vscode/
+.idea/
 
 # macOS system files
 .DS_Store
