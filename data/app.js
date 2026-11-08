@@ -15,6 +15,7 @@ let userOffsetHours = 0;
 let activeStationIdx = 0;
 let serverEpochSec = 0;
 let clientEpochBaseMs = Date.now();
+let appConfig = null;
 
 // --- Tab Management ---
 function switchTab(tabName) {
@@ -25,7 +26,87 @@ function switchTab(tabName) {
     if (btn) btn.classList.toggle('active', t === tabName);
     if (content) content.style.display = (t === tabName) ? 'block' : 'none';
   });
+  if (tabName === 'network' || tabName === 'broadcast') fetchConfig();
   if (tabName === 'ota') fetchOtaStatus();
+}
+
+async function fetchConfig() {
+  try {
+    const res = await fetch('/api/config');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const cfg = await res.json();
+    appConfig = cfg;
+    loadConfigToForm(cfg);
+  } catch (err) {
+    console.warn('Config fetch error:', err);
+  }
+}
+
+function loadConfigToForm(cfg) {
+  if (!cfg) return;
+
+  // Broadcast parameters
+  if (cfg.station !== undefined) {
+    const stEl = document.getElementById('station');
+    if (stEl) stEl.value = String(cfg.station);
+    activeStationIdx = cfg.station;
+  }
+  if (cfg.offset_hours !== undefined) {
+    const offEl = document.getElementById('offsetHours');
+    if (offEl) offEl.value = String(cfg.offset_hours);
+    userOffsetHours = cfg.offset_hours;
+  }
+  if (cfg.schedule_enabled !== undefined) {
+    const schEl = document.getElementById('scheduleEnabled');
+    if (schEl) schEl.checked = cfg.schedule_enabled;
+  }
+  if (cfg.broadcast_hour !== undefined && cfg.broadcast_minute !== undefined) {
+    const btEl = document.getElementById('broadcastTime');
+    if (btEl) {
+      btEl.value = `${String(cfg.broadcast_hour).padStart(2, '0')}:${String(cfg.broadcast_minute).padStart(2, '0')}`;
+    }
+  }
+  if (cfg.broadcast_duration_min !== undefined) {
+    const bdEl = document.getElementById('broadcastDuration');
+    if (bdEl) bdEl.value = String(cfg.broadcast_duration_min);
+  }
+  if (cfg.carousel_enabled !== undefined) {
+    setBroadcastMode(cfg.carousel_enabled);
+  }
+  if (cfg.carousel_mask !== undefined) {
+    const ids = ['car_bpc', 'car_wwvb', 'car_msf', 'car_dcf77', 'car_jjy40', 'car_jjy60'];
+    for (let i = 0; i < 6; i++) {
+      const el = document.getElementById(ids[i]);
+      if (el) el.checked = !!(cfg.carousel_mask & (1 << i));
+    }
+  }
+  if (cfg.carousel_duration_min !== undefined) {
+    const cdEl = document.getElementById('carouselDuration');
+    if (cdEl) cdEl.value = String(cfg.carousel_duration_min);
+  }
+  updateCarouselCalc();
+
+  // NTP parameters
+  if (cfg.system && cfg.system.ntp_server) {
+    const ntpEl = document.getElementById('ntpServer');
+    if (ntpEl) ntpEl.value = cfg.system.ntp_server;
+  }
+
+  // Wi-Fi Radio parameters
+  if (cfg.wifi) {
+    const txEl = document.getElementById('cfgWifiTxPower');
+    if (txEl && cfg.wifi.tx_power !== undefined) {
+      txEl.value = String(cfg.wifi.tx_power);
+    }
+    const msEl = document.getElementById('cfgWifiModemSleep');
+    if (msEl && cfg.wifi.modem_sleep !== undefined) {
+      msEl.checked = cfg.wifi.modem_sleep;
+    }
+    const bwEl = document.getElementById('cfgWifiForce20mhz');
+    if (bwEl && cfg.wifi.force_20mhz !== undefined) {
+      bwEl.checked = cfg.wifi.force_20mhz;
+    }
+  }
 }
 
 function capitalize(s) {
@@ -295,19 +376,20 @@ async function saveWifiCredentials() {
   }
 }
 
-async function saveNetworkAdvanced(e) {
+async function saveWifiRadioConfig(e) {
   e.preventDefault();
-  const alertBox = document.getElementById('netAlert');
+  const alertBox = document.getElementById('radioAlert');
   alertBox.style.display = 'none';
 
+  const txPower = parseInt(document.getElementById('cfgWifiTxPower').value, 10);
+  const modemSleep = document.getElementById('cfgWifiModemSleep').checked;
+  const force20mhz = document.getElementById('cfgWifiForce20mhz').checked;
+
   const payload = {
-    system: {
-      ntp_server: document.getElementById('ntpServer').value.trim()
-    },
     wifi: {
-      modem_sleep: document.getElementById('modemSleep').checked,
-      force_20mhz: document.getElementById('force20mhz').checked,
-      tx_power: parseInt(document.getElementById('txPower').value)
+      tx_power: txPower,
+      modem_sleep: modemSleep,
+      force_20mhz: force20mhz
     }
   };
 
@@ -317,12 +399,58 @@ async function saveNetworkAdvanced(e) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    if (!res.ok) throw new Error('Save failed');
+    if (!res.ok) throw new Error('Failed to commit radio settings');
+    if (!appConfig) appConfig = {};
+    if (!appConfig.wifi) appConfig.wifi = {};
+    Object.assign(appConfig.wifi, payload.wifi);
+
     alertBox.className = 'alert success';
-    alertBox.innerText = '✓ Radio and NTP settings saved!';
+    alertBox.innerText = '✓ Wi-Fi radio parameters saved and applied immediately!';
+    alertBox.style.display = 'block';
+    setTimeout(() => { alertBox.style.display = 'none'; }, 6000);
   } catch (err) {
     alertBox.className = 'alert error';
-    alertBox.innerText = '✗ Error saving settings: ' + err.message;
+    alertBox.innerText = '✗ Error saving radio settings: ' + err.message;
+    alertBox.style.display = 'block';
+  }
+}
+
+async function saveNtpConfig(e) {
+  e.preventDefault();
+  const alertBox = document.getElementById('ntpAlert');
+  alertBox.style.display = 'none';
+
+  const server = document.getElementById('ntpServer').value.trim();
+  if (!server) {
+    alert('Please enter a valid NTP server.');
+    return;
+  }
+
+  const payload = {
+    system: {
+      ntp_server: server
+    }
+  };
+
+  try {
+    const res = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error('Failed to commit NTP server');
+    if (!appConfig) appConfig = {};
+    if (!appConfig.system) appConfig.system = {};
+    Object.assign(appConfig.system, payload.system);
+
+    alertBox.className = 'alert success';
+    alertBox.innerText = '✓ NTP server updated and saved!';
+    alertBox.style.display = 'block';
+    setTimeout(() => { alertBox.style.display = 'none'; }, 6000);
+  } catch (err) {
+    alertBox.className = 'alert error';
+    alertBox.innerText = '✗ Error saving NTP settings: ' + err.message;
+    alertBox.style.display = 'block';
   }
 }
 
@@ -484,6 +612,7 @@ window.onload = () => {
     });
   }
 
+  fetchConfig();
   pollStatus();
   setInterval(pollStatus, 4000);
   setInterval(tickClock, 1000);

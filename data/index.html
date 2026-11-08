@@ -7,7 +7,7 @@
 
   <!-- Web App Manifest & Mobile PWA Meta -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0b1120">
+  <meta name="theme-color" content="#09060e">
   <meta name="color-scheme" content="dark">
 
   <!-- Apple iOS Safari Standalone Support -->
@@ -236,57 +236,72 @@
         <button type="button" class="btn btn-primary" onclick="saveWifiCredentials()">Save & Connect to Wi-Fi</button>
       </div>
 
-      <!-- NTP & Radio Optimization Settings -->
-      <form class="card" onsubmit="saveNetworkAdvanced(event)">
-        <div class="card-title">NTP Reference & Radio Tuning</div>
-
-        <div class="form-group">
-          <label for="ntpServer">
-            NTP Time Server
-            <button type="button" class="info-btn" onclick="showInfo('NTP Server', '<p>Network Time Protocol server used by the ESP32 to discipline its internal RTC clock to atomic accuracy. Choose geographically close Stratum-1 servers.</p>')">i</button>
-          </label>
-          <input type="text" id="ntpServer" value="pool.ntp.org">
-          <div style="display: flex; gap: 6px; margin-top: 6px;">
-            <button type="button" class="btn btn-secondary" style="font-size: 11px; padding: 4px 8px;" onclick="setNtpPreset('pool.ntp.org')">pool.ntp.org</button>
-            <button type="button" class="btn btn-secondary" style="font-size: 11px; padding: 4px 8px;" onclick="setNtpPreset('time.google.com')">time.google.com</button>
-            <button type="button" class="btn btn-secondary" style="font-size: 11px; padding: 4px 8px;" onclick="setNtpPreset('time.cloudflare.com')">time.cloudflare.com</button>
-          </div>
+      <!-- Section: Wi-Fi & RF Radio Power -->
+      <form class="card" onsubmit="saveWifiRadioConfig(event)">
+        <div class="card-title">
+          <span>📶 Wi-Fi & RF Radio Power</span>
         </div>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.45;">
+          Tune Wi-Fi transmit power and radio sleep to balance chip heat, signal range, and network responsiveness. Radio updates apply immediately upon saving.
+        </p>
 
-        <div class="switch-row">
-          <div>
-            <label style="margin: 0;">Wi-Fi 802.11 Modem-Sleep</label>
-            <span style="font-size: 12px; color: var(--text-muted);">Enables ultra-low power DTIM sleep during standby; automatically pauses during RF broadcast for rail stability.</span>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="modemSleep" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="switch-row">
-          <div>
-            <label style="margin: 0;">Force 20 MHz Bandwidth (HT20)</label>
-            <span style="font-size: 12px; color: var(--text-muted);">Restricts Wi-Fi baseband to 20 MHz to minimize RF hash and spurious carrier noise.</span>
-          </div>
-          <label class="switch">
-            <input type="checkbox" id="force20mhz" checked>
-            <span class="slider"></span>
-          </label>
-        </div>
-
-        <div class="form-group">
-          <label for="txPower">Wi-Fi Max TX Power Level</label>
-          <select id="txPower">
-            <option value="78">78 (~19.5 dBm max - Maximum reach)</option>
-            <option value="68">68 (~17.0 dBm - Standard)</option>
-            <option value="60">60 (~15.0 dBm - Balanced)</option>
-            <option value="44">44 (~11.0 dBm - Low emission)</option>
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label for="cfgWifiTxPower">RF Transmit Power:</label>
+          <select id="cfgWifiTxPower">
+            <option value="44">+11.0 dBm (Lowest Heat / Same Room, ~13mW)</option>
+            <option value="52">+13.0 dBm (Low Power, ~20mW)</option>
+            <option value="60">+15.0 dBm (Medium Power, ~32mW)</option>
+            <option value="68">+17.0 dBm (High Power, ~50mW)</option>
+            <option value="78" selected>+19.5 dBm (Maximum Reliability / Recommended, ~100mW)</option>
           </select>
+          <span class="field-hint">ESP32-C3 SuperMini's miniature ceramic antenna requires +19.5 dBm for fast, zero-retransmission web UI loading.</span>
         </div>
 
-        <button type="submit" class="btn btn-primary">Save Radio Settings</button>
-        <div id="netAlert" class="alert"></div>
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label class="checkbox-label" for="cfgWifiModemSleep">
+            <input type="checkbox" id="cfgWifiModemSleep" checked>
+            <span>Enable Modem Sleep (DTIM Power Saving)</span>
+          </label>
+          <span class="field-hint">Off keeps radio actively listening for instant web responses. On (Recommended) reduces idle power & chip heat without loss of range.</span>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 18px;">
+          <label class="checkbox-label" for="cfgWifiForce20mhz">
+            <input type="checkbox" id="cfgWifiForce20mhz" checked>
+            <span>Lock to 20 MHz Bandwidth (HT20)</span>
+          </label>
+          <span class="field-hint">Halves baseband RF processing overhead to reduce heat and 2.4 GHz interference. Does not affect other devices on your network.</span>
+        </div>
+
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <button type="submit" class="btn btn-primary">💾 Save Radio Settings</button>
+          <button type="button" class="btn btn-secondary" onclick="fetchConfig()">🔄 Discard & Reload</button>
+        </div>
+        <div id="radioAlert" class="alert" style="margin-top: 12px;"></div>
+      </form>
+
+      <!-- Section: NTP Reference & Time Synchronization -->
+      <form class="card" onsubmit="saveNtpConfig(event)">
+        <div class="card-title">
+          <span>🌐 Network Time Protocol (NTP)</span>
+          <button type="button" class="info-btn" onclick="showInfo('NTP Server', '<p>Network Time Protocol server used by the ESP32 to discipline its internal RTC clock to atomic accuracy. Choose geographically close Stratum-1 servers.</p>')">i</button>
+        </div>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.45;">
+          High-accuracy time reference used to discipline the ESP32 RTC before generating MultiBand 6 carrier bursts.
+        </p>
+
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label for="ntpServer">NTP Time Server</label>
+          <input type="text" id="ntpServer" value="pool.ntp.org" placeholder="pool.ntp.org">
+          <div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary" style="font-size: 11px; padding: 4px 10px;" onclick="setNtpPreset('pool.ntp.org')">pool.ntp.org</button>
+            <button type="button" class="btn btn-secondary" style="font-size: 11px; padding: 4px 10px;" onclick="setNtpPreset('time.google.com')">time.google.com</button>
+            <button type="button" class="btn btn-secondary" style="font-size: 11px; padding: 4px 10px;" onclick="setNtpPreset('time.cloudflare.com')">time.cloudflare.com</button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">💾 Save NTP Settings</button>
+        <div id="ntpAlert" class="alert" style="margin-top: 12px;"></div>
       </form>
 
       <!-- System Maintenance Card -->

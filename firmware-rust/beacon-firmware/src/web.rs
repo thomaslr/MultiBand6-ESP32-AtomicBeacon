@@ -479,9 +479,13 @@ fn send_binary(
     )?;
 
     if use_gzip {
-        resp.write_all(gz)?;
+        for chunk in gz.chunks(2048) {
+            let _ = resp.write_all(chunk);
+        }
     } else {
-        resp.write_all(raw)?;
+        for chunk in raw.chunks(2048) {
+            let _ = resp.write_all(chunk);
+        }
     }
     Ok(())
 }
@@ -496,10 +500,13 @@ fn send_json(
         Some(if status == 200 { "OK" } else { "Error" }),
         &[
             ("Content-Type", "application/json"),
+            ("Access-Control-Allow-Origin", "*"),
             ("Cache-Control", "no-cache"),
             ("Connection", "close"),
         ],
     )?;
-    resp.write_all(json.as_bytes())?;
+    for chunk in json.as_bytes().chunks(2048) {
+        let _ = resp.write_all(chunk);
+    }
     Ok(())
 }
