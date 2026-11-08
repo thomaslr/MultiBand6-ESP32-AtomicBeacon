@@ -7,38 +7,22 @@
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <style>
     :root {
-      --bg: #09060e;
-      --bg-gradient: radial-gradient(circle at 50% 0%, #20133a 0%, #0d0818 55%, #06040a 100%);
-      --card-bg: linear-gradient(160deg, #1c122e 0%, #120920 100%);
-      --text: #f5f3ff;
-      --text-muted: #b4a2d8;
+      color-scheme: dark;
+      --bg: #090314;
+      --bg-gradient: radial-gradient(ellipse at 50% -12%, #30105c 0%, #16072b 45%, #07020f 100%);
+      --card-bg: linear-gradient(165deg, #1f0e38 0%, #140726 60%, #0d041a 100%);
+      --text: #ffffff;
+      --text-muted: #d8b4fe;
       --primary: #c084fc;
       --primary-hover: #d8b4fe;
       --primary-gradient: linear-gradient(135deg, #c084fc 0%, #9333ea 50%, #6b21a8 100%);
       --primary-gradient-hover: linear-gradient(135deg, #d8b4fe 0%, #a855f7 50%, #7e22ce 100%);
-      --primary-glow: rgba(192, 132, 252, 0.45);
-      --border: rgba(192, 132, 252, 0.22);
-      --input-bg: rgba(12, 7, 22, 0.85);
-      --input-border: rgba(168, 85, 247, 0.32);
+      --primary-glow: rgba(192, 132, 252, 0.55);
+      --border: rgba(192, 132, 252, 0.3);
+      --input-bg: #0f051c;
+      --input-border: rgba(192, 132, 252, 0.38);
       --error: #f43f5e;
       --success: #10b981;
-    }
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg: #f8f6fc;
-        --bg-gradient: radial-gradient(circle at 50% 0%, #eedeff 0%, #f7f3ff 60%, #ece6f8 100%);
-        --card-bg: #ffffff;
-        --text: #1e1035;
-        --text-muted: #6b4e94;
-        --primary: #9333ea;
-        --primary-hover: #7e22ce;
-        --primary-gradient: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
-        --primary-gradient-hover: linear-gradient(135deg, #c084fc 0%, #9333ea 100%);
-        --primary-glow: rgba(147, 51, 234, 0.3);
-        --border: #e9d5ff;
-        --input-bg: #fdfaff;
-        --input-border: #d8b4fe;
-      }
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -87,9 +71,9 @@
       margin-bottom: 6px;
     }
     p.subtitle {
-      color: var(--text-muted);
+      color: #d1b8f0;
       font-size: 13px;
-      line-height: 1.4;
+      line-height: 1.45;
     }
     .form-group {
       margin-bottom: 18px;
@@ -97,9 +81,9 @@
     label {
       display: block;
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 700;
       margin-bottom: 6px;
-      color: var(--text);
+      color: #ffffff;
     }
     input[type="text"], input[type="password"] {
       width: 100%;
