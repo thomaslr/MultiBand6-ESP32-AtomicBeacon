@@ -80,6 +80,25 @@ impl SntpManager {
         false
     }
 
+    /// Suspends background SNTP service during active RF broadcast to eliminate
+    /// 2.4 GHz supply ripple on the 3.3V rail and prevent any mid-transmission clock adjustments.
+    pub fn suspend(&self) {
+        info!("[SNTP] Suspending background NTP sync during RF broadcast window.");
+        unsafe {
+            esp_idf_svc::sys::esp_sntp_stop();
+        }
+    }
+
+    /// Resumes background SNTP service after RF broadcast completes.
+    pub fn resume(&self) {
+        info!("[SNTP] Resuming background NTP sync service.");
+        unsafe {
+            if !esp_idf_svc::sys::esp_sntp_enabled() {
+                esp_idf_svc::sys::esp_sntp_init();
+            }
+        }
+    }
+
     pub fn last_sync_epoch(&self) -> u32 {
         self.last_sync_epoch.load(Ordering::Relaxed)
     }

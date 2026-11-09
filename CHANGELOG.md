@@ -5,6 +5,15 @@ All notable changes to the MultiBand 6 ESP32 Atomic Beacon project will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.4] - 2026-11-09
+
+### Added
+- **OTA Release Notes Inspection Modal**: Firmware update button now fetches and displays full release notes and changelog in a formatted review popover before asking the user to confirm and apply.
+- **OTA Update Available Status Badge**: Added an inline status badge next to the OTA update button reporting `✨ Update Available: vX.Y.Z` or `✓ Up to date` with human-readable check timestamps.
+- **Daily Automated Update Check**: System checks GitHub Releases API once every 24 hours with local caching to prevent rate-limiting and unnecessary network overhead, plus an on-demand "Check for Updates" trigger.
+- **Broadcasting SNTP Suspension**: Added hardware-level suspension (`esp_sntp_stop()`) during active RF transmission to eliminate 2.4 GHz bursts on the 3.3V rail, automatically resuming (`esp_sntp_init()`) when broadcast stops.
+- **1-Minute Lightweight Dashboard Polling**: Reduced status polling from 4 seconds to 60 seconds (93.3% reduction in HTTP traffic), paired with an immediate refresh on tab visibility changes and client-side 1-second clock ticking.
+
 ## [0.1.3] - 2026-11-09
 
 ### Fixed

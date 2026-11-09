@@ -18,6 +18,8 @@ let clientEpochBaseMs = Date.now();
 let transmitRemainSec = 0;
 let transmitRemainBaseMs = Date.now();
 let appConfig = null;
+let currentFirmwareVersion = '0.1.4';
+let latestReleaseData = null;
 
 // --- Tab Management ---
 function switchTab(tabName) {
@@ -160,6 +162,9 @@ function updateStopButtonCountdown() {
     const min = Math.floor(remain / 60);
     const sec = remain % 60;
     btnStop.innerText = `⏹ Stop (${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')})`;
+    if (remain === 0 && isTransmitting) {
+      setTimeout(pollStatus, 500);
+    }
   } else {
     btnStop.innerText = '⏹ Stop';
   }
@@ -225,8 +230,10 @@ function updateStatusDisplay(data) {
     document.getElementById('netMdns').innerText = `${hostname}.local`;
   }
   if (data.version) {
-    document.getElementById('versionBadge').innerText = data.version;
-    document.getElementById('otaFirmwareVersion').innerText = data.version;
+    currentFirmwareVersion = data.version;
+    const cleanVer = data.version.startsWith('v') ? data.version : ('v' + data.version);
+    document.getElementById('versionBadge').innerText = cleanVer;
+    document.getElementById('otaFirmwareVersion').innerText = cleanVer;
   }
 }
 
@@ -557,27 +564,239 @@ async function rebootEsp32() {
 }
 
 // --- OTA Firmware Actions ---
+
+// SemVer comparison and Markdown formatting helpers
+function parseSemVer(v) {
+  if (!v) return [0, 0, 0];
+  const cleaned = v.replace(/^v/i, '').trim();
+  const parts = cleaned.split('.').map(n => parseInt(n, 10) || 0);
+  while (parts.length < 3) parts.push(0);
+  return parts;
+}
+
+function isNewerVersion(remote, local) {
+  const [rMaj, rMin, rPat] = parseSemVer(remote);
+  const [lMaj, lMin, lPat] = parseSemVer(local);
+  if (rMaj !== lMaj) return rMaj > lMaj;
+  if (rMin !== lMin) return rMin > lMin;
+  return rPat > lPat;
+}
+
+function formatMarkdown(text) {
+  if (!text) return '<p>No release notes provided for this version.</p>';
+  let html = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/^### (.*$)/gim, '<h4 style="color: var(--accent); margin: 12px 0 6px 0; font-size: 14px;">$1</h4>')
+    .replace(/^## (.*$)/gim, '<h3 style="color: var(--accent); margin: 14px 0 8px 0; font-size: 15px;">$1</h3>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code style="background: rgba(192, 132, 252, 0.15); padding: 2px 5px; border-radius: 4px; font-size: 12px;">$1</code>')
+    .replace(/^\s*[-•]\s+(.*$)/gim, '<li style="margin-bottom: 4px;">$1</li>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: var(--accent); text-decoration: underline;">$1</a>');
+
+  html = html.replace(/((?:<li>.*?<\/li>\s*)+)/gims, '<ul style="padding-left: 20px; margin: 6px 0 12px;">$1</ul>');
+  html = html.replace(/\n\n+/g, '<p style="margin: 6px 0;"></p>');
+  return html;
+}
+
+function formatTimeAgo(ts) {
+  if (!ts) return 'never';
+  const diffSec = Math.floor((Date.now() - ts) / 1000);
+  if (diffSec < 60) return 'just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
+}
+
+// 24-hour daily OTA update check
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+async function checkForUpdates(force = false) {
+  const badge = document.getElementById('otaUpdateBadge');
+  const meta = document.getElementById('otaCheckMeta');
+  const lastCheck = parseInt(localStorage.getItem('ota_last_check_ts') || '0', 10);
+  const now = Date.now();
+  const isDue = (now - lastCheck) >= ONE_DAY_MS;
+
+  // Use cached result if not forced and less than 24 hours have elapsed
+  if (!force && !isDue) {
+    const cached = localStorage.getItem('ota_cached_release');
+    if (cached) {
+      try {
+        const data = JSON.parse(cached);
+        latestReleaseData = data;
+        renderUpdateBadge(data, lastCheck);
+        return;
+      } catch (e) {
+        // Fall through to network fetch if corrupted
+      }
+    }
+  }
+
+  if (badge) {
+    badge.innerText = 'Checking GitHub...';
+    badge.className = 'badge';
+  }
+  if (meta) meta.innerText = 'Daily check: checking GitHub Releases API...';
+
+  try {
+    const res = await fetch('https://api.github.com/repos/thomaslr/MultiBand6-ESP32-AtomicBeacon/releases/latest');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+
+    latestReleaseData = data;
+    localStorage.setItem('ota_last_check_ts', String(now));
+    localStorage.setItem('ota_cached_release', JSON.stringify(data));
+
+    renderUpdateBadge(data, now);
+  } catch (err) {
+    console.warn('[OTA] Check failed:', err);
+    const cached = localStorage.getItem('ota_cached_release');
+    if (cached) {
+      try {
+        const data = JSON.parse(cached);
+        latestReleaseData = data;
+        renderUpdateBadge(data, lastCheck);
+        if (meta) meta.innerText = `Daily check: using cached result (${formatTimeAgo(lastCheck)}). Connection failed: ${err.message}`;
+        return;
+      } catch (_) {}
+    }
+    if (badge) {
+      badge.innerText = 'Check unavailable';
+      badge.className = 'badge';
+    }
+    if (meta) meta.innerText = `Daily check failed: ${err.message}`;
+  }
+}
+
+function renderUpdateBadge(data, timestamp) {
+  const badge = document.getElementById('otaUpdateBadge');
+  const meta = document.getElementById('otaCheckMeta');
+  const btn = document.getElementById('btnOtaUrl');
+  if (!data || !badge) return;
+
+  const remoteTag = data.tag_name || 'latest';
+  const currentVer = currentFirmwareVersion.startsWith('v') ? currentFirmwareVersion : ('v' + currentFirmwareVersion);
+  const isNewer = isNewerVersion(remoteTag, currentVer);
+
+  if (isNewer) {
+    badge.innerText = `✨ Update Available: ${remoteTag}`;
+    badge.className = 'badge badge-update';
+    if (btn) btn.innerText = `⬇ Review & Apply ${remoteTag}`;
+  } else {
+    badge.innerText = `✓ Up to date (${currentVer})`;
+    badge.className = 'badge badge-green';
+    if (btn) btn.innerText = `⬇ Review & Flash ${remoteTag}`;
+  }
+
+  // Update URL input if GitHub release provides .bin asset
+  if (data.assets && data.assets.length > 0) {
+    const binAsset = data.assets.find(a => a.name.endsWith('.bin')) || data.assets[0];
+    if (binAsset && binAsset.browser_download_url) {
+      const urlEl = document.getElementById('otaUrl');
+      if (urlEl) urlEl.value = binAsset.browser_download_url;
+    }
+  }
+
+  if (meta) {
+    meta.innerText = `Daily check: checked ${formatTimeAgo(timestamp)} (system checks once per day)`;
+  }
+}
+
 async function fetchOtaStatus() {
   try {
     const res = await fetch('/api/ota/status');
     if (!res.ok) throw new Error('OTA status fetch failed');
     const data = await res.json();
-    document.getElementById('otaFirmwareVersion').innerText = data.firmware_version || '--';
+    if (data.firmware_version) {
+      currentFirmwareVersion = data.firmware_version;
+      const cleanVer = data.firmware_version.startsWith('v') ? data.firmware_version : ('v' + data.firmware_version);
+      document.getElementById('otaFirmwareVersion').innerText = cleanVer;
+    }
     document.getElementById('otaRunningSlot').innerText = data.running_slot || '--';
     document.getElementById('otaNextSlot').innerText = data.next_update_slot || '--';
     if (data.default_url) document.getElementById('otaUrl').value = data.default_url;
+    checkForUpdates(false);
   } catch (e) {
     console.warn('OTA status error:', e);
   }
 }
 
-async function triggerOtaFromUrl() {
+// Reports release details and changelog before asking user to confirm
+function showOtaReportBeforeApply() {
+  if (!latestReleaseData) {
+    checkForUpdates(true).then(() => {
+      if (latestReleaseData) {
+        showOtaReportBeforeApply();
+      } else {
+        alert('Could not retrieve release details from GitHub. Please verify internet connectivity or enter the binary URL directly.');
+      }
+    });
+    return;
+  }
+
+  const rel = latestReleaseData;
+  const currentVer = currentFirmwareVersion.startsWith('v') ? currentFirmwareVersion : ('v' + currentFirmwareVersion);
+  const newVer = rel.tag_name || 'latest';
+  const isNewer = isNewerVersion(newVer, currentVer);
+  const notesHtml = formatMarkdown(rel.body);
+
+  const title = isNewer
+    ? `🚀 New Firmware Update Available: ${newVer}`
+    : `📦 Firmware Release Details: ${newVer}`;
+
+  const html = `
+    <div style="margin-bottom: 14px; padding: 12px; background: rgba(0, 0, 0, 0.35); border-radius: 10px; border: 1px solid var(--border);">
+      <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+        <span style="color: var(--text-muted);">Current Installed Version:</span>
+        <strong>${currentVer}</strong>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 13px;">
+        <span style="color: var(--text-muted);">Target Release Version:</span>
+        <strong style="color: ${isNewer ? '#fef08a' : '#10b981'}; font-weight: 700;">${newVer} ${isNewer ? '(Newer Version)' : '(Currently Installed)'}</strong>
+      </div>
+    </div>
+
+    <div style="margin-bottom: 14px;">
+      <div style="font-weight: 700; color: var(--accent); margin-bottom: 8px; font-size: 13px;">
+        📋 What's Included in This Release:
+      </div>
+      <div style="max-height: 220px; overflow-y: auto; padding: 10px 14px; background: rgba(0, 0, 0, 0.2); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);">
+        ${notesHtml}
+      </div>
+    </div>
+
+    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.45;">
+      🛡️ <strong>Dual-OTA Rollback Protected:</strong> The firmware will stream directly into your standby partition over TLS. The ESP32 bootloader automatically rolls back to your working slot if verification fails.
+    </div>
+
+    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+      <button type="button" class="btn btn-secondary" onclick="hideInfo()">Cancel</button>
+      <button type="button" class="btn btn-primary" onclick="confirmAndApplyOta()">
+        ⬇ Flash &amp; Apply ${newVer}
+      </button>
+    </div>
+  `;
+
+  showInfo(title, html);
+}
+
+function confirmAndApplyOta() {
+  hideInfo();
+  triggerOtaFromUrl(true);
+}
+
+async function triggerOtaFromUrl(confirmed = false) {
   const url = document.getElementById('otaUrl').value.trim();
   if (!url) {
     alert('Please enter a firmware binary URL.');
     return;
   }
-  if (!confirm(`Download and flash firmware from:\n${url}\n\nThe ESP32 will reboot automatically after completion.`)) {
+  if (!confirmed && !confirm(`Download and flash firmware from:\n${url}\n\nThe ESP32 will reboot automatically after completion.`)) {
     return;
   }
 
@@ -598,11 +817,13 @@ async function triggerOtaFromUrl() {
     if (!res.ok) throw new Error(result.error || 'OTA failed');
     alertBox.className = 'alert success';
     alertBox.innerText = '✓ OTA flash successful! Rebooting into updated slot in 2 seconds...';
+    alertBox.style.display = 'block';
   } catch (err) {
     btn.disabled = false;
     bar.style.display = 'none';
     alertBox.className = 'alert error';
     alertBox.innerText = '✗ OTA update failed: ' + err.message;
+    alertBox.style.display = 'block';
   }
 }
 
@@ -693,6 +914,18 @@ window.onload = () => {
 
   fetchConfig();
   pollStatus();
-  setInterval(pollStatus, 4000);
-  setInterval(tickClock, 1000);
+  setInterval(pollStatus, 60000); // 1-minute status refresh from ESP32
+  setInterval(tickClock, 1000);   // 1-second local clock tick
+
+  // Daily OTA update check (checked on startup, and once every hour to verify if 24h elapsed)
+  checkForUpdates(false);
+  setInterval(() => checkForUpdates(false), 3600000);
+
+  // Immediate refresh when tab becomes visible after being backgrounded
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+      pollStatus();
+      checkForUpdates(false);
+    }
+  });
 };

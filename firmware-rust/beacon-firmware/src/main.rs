@@ -154,12 +154,29 @@ fn main() -> anyhow::Result<()> {
             let mut last_presync_day = -1i32;
             let mut last_midnight_sync_day = -1i32;
             let mut last_bg_retry_ms = 0u32;
+            let mut last_is_tx = false;
 
             loop {
                 let now_ms = unsafe { (esp_idf_svc::sys::esp_timer_get_time() / 1000) as u32 };
                 let is_tx = carrier.state.is_transmitting.load(Ordering::Relaxed);
                 let now_sec = unsafe { esp_idf_svc::sys::time(core::ptr::null_mut()) as u32 };
                 let is_synced = now_sec > 1_700_000_000;
+
+                // Track transmission state transitions to suspend/resume SNTP service
+                if is_tx != last_is_tx {
+                    if is_tx {
+                        // Suspend background NTP sync during RF broadcast window to eliminate 2.4 GHz bursts
+                        if let Some(ref mgr) = sntp {
+                            mgr.suspend();
+                        }
+                    } else {
+                        // Resume background NTP sync service when broadcast completes
+                        if let Some(ref mgr) = sntp {
+                            mgr.resume();
+                        }
+                    }
+                    last_is_tx = is_tx;
+                }
 
                 // Update LED breathing pulse
                 status_led.update(is_tx, now_ms);

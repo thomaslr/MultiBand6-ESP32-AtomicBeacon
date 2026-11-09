@@ -145,6 +145,15 @@ body {
   box-shadow: 0 1px 6px rgba(16, 185, 129, 0.3);
 }
 
+.badge-update {
+  background: rgba(245, 158, 11, 0.25);
+  color: #fef08a;
+  border: 1px solid rgba(251, 191, 36, 0.7);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.45);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  cursor: pointer;
+}
+
 /* Tab Navigation - Metallic Capsule Track */
 .tabs {
   display: flex;
