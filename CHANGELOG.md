@@ -5,6 +5,11 @@ All notable changes to the MultiBand 6 ESP32 Atomic Beacon project will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2026-11-10
+
+### Changed
+- **Extended Broadcast Duration Limit**: Increased maximum scheduled broadcast duration from 180 minutes to 240 minutes (4 hours) in the web UI, allowing extended overnight synchronization sessions for distant or stubborn timepieces.
+
 ## [0.1.7] - 2026-11-09
 
 ### Fixed
