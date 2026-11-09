@@ -110,10 +110,18 @@ fn main() -> anyhow::Result<()> {
                 }
             };
 
-            // Start NTP Time Sync
-            if let Ok(sntp) = sntp::SntpManager::init(&config.system.ntp_server) {
-                let _ = sntp.sync(Duration::from_secs(8));
-            }
+            // Start Persistent NTP Time Sync
+            let sntp = match sntp::SntpManager::init(&config.system.ntp_server) {
+                Ok(mgr) => {
+                    info!("[SNTP] Attempting initial atomic time sync on boot...");
+                    let _ = mgr.sync(Duration::from_secs(8));
+                    Some(mgr)
+                }
+                Err(e) => {
+                    warn!("[SNTP] Failed to initialize SNTP: {:?}", e);
+                    None
+                }
+            };
 
             // Shared application state for Web Server
             let app_state = Arc::new(Mutex::new(AppState {
@@ -127,6 +135,7 @@ fn main() -> anyhow::Result<()> {
                 }).unwrap_or_default(),
                 wifi_rssi: 0,
                 scanned_ssids: Vec::new(),
+                sntp: sntp.clone(),
             }));
 
             // Launch Main Web Server
@@ -142,10 +151,15 @@ fn main() -> anyhow::Result<()> {
             // Station operational loop
             let mut last_button_state = true; // High when not pressed
             let mut last_schedule_day = -1i32;
+            let mut last_presync_day = -1i32;
+            let mut last_midnight_sync_day = -1i32;
+            let mut last_bg_retry_ms = 0u32;
 
             loop {
                 let now_ms = unsafe { (esp_idf_svc::sys::esp_timer_get_time() / 1000) as u32 };
                 let is_tx = carrier.state.is_transmitting.load(Ordering::Relaxed);
+                let now_sec = unsafe { esp_idf_svc::sys::time(core::ptr::null_mut()) as u32 };
+                let is_synced = now_sec > 1_700_000_000;
 
                 // Update LED breathing pulse
                 status_led.update(is_tx, now_ms);
@@ -160,9 +174,17 @@ fn main() -> anyhow::Result<()> {
                     }
                 }
 
+                // Background SNTP retry if boot sync failed or hasn't settled yet (every 15s)
+                if !is_synced && !is_tx && now_ms.saturating_sub(last_bg_retry_ms) >= 15_000 {
+                    last_bg_retry_ms = now_ms;
+                    if let Some(ref mgr) = sntp {
+                        info!("[SNTP] RTC not yet synchronized. Requesting background NTP poll...");
+                        mgr.request_sync();
+                    }
+                }
+
                 // Check transmission duration timeout
                 if is_tx {
-                    let now_sec = unsafe { esp_idf_svc::sys::time(core::ptr::null_mut()) as u32 };
                     let tx_start = carrier.state.transmit_start_sec.load(Ordering::Relaxed);
                     let tx_dur = carrier.state.transmit_duration_sec.load(Ordering::Relaxed);
                     if tx_dur > 0 && (now_sec.saturating_sub(tx_start)) >= tx_dur {
@@ -171,20 +193,56 @@ fn main() -> anyhow::Result<()> {
                     }
                 }
 
-                // Check daily schedule trigger
-                let now_sec = unsafe { esp_idf_svc::sys::time(core::ptr::null_mut()) as u32 };
-                if now_sec > 1_700_000_000 && !is_tx {
+                // Time synchronization & schedule triggers (only when clock is valid and not transmitting)
+                if is_synced && !is_tx {
                     let current_cfg = {
                         app_state.lock().map(|a| a.config.clone()).unwrap_or_else(|_| config.clone())
                     };
+
+                    let offset_sec = current_cfg.station.native_utc_offset_sec() + (current_cfg.offset_hours * 3600);
+                    let local_epoch = (now_sec as i64) + (offset_sec as i64);
+                    let mut tm_val = unsafe { core::mem::zeroed() };
+                    unsafe {
+                        esp_idf_svc::sys::gmtime_r(&(local_epoch as esp_idf_svc::sys::time_t), &mut tm_val);
+                    }
+
+                    // Midnight local time periodic maintenance sync
+                    if tm_val.tm_hour == 0
+                        && tm_val.tm_min == 0
+                        && tm_val.tm_yday != last_midnight_sync_day
+                    {
+                        last_midnight_sync_day = tm_val.tm_yday;
+                        info!("[Schedule] Midnight station local time: triggering NTP maintenance sync.");
+                        if let Some(ref mgr) = sntp {
+                            mgr.request_sync();
+                        }
+                    }
+
+                    // Scheduled broadcast logic
                     if current_cfg.schedule_enabled {
-                        let offset_sec = current_cfg.station.native_utc_offset_sec() + (current_cfg.offset_hours * 3600);
-                        let local_epoch = (now_sec as i64) + (offset_sec as i64);
-                        let mut tm_val = unsafe { core::mem::zeroed() };
-                        unsafe {
-                            esp_idf_svc::sys::gmtime_r(&(local_epoch as esp_idf_svc::sys::time_t), &mut tm_val);
+                        // Pre-broadcast NTP sync: 2 minutes prior to broadcast start
+                        let (pre_hour, pre_min) = if current_cfg.broadcast_minute >= 2 {
+                            (current_cfg.broadcast_hour as i32, (current_cfg.broadcast_minute - 2) as i32)
+                        } else {
+                            (((current_cfg.broadcast_hour as i32) + 23) % 24, (current_cfg.broadcast_minute + 58) as i32)
+                        };
+
+                        if tm_val.tm_hour == pre_hour
+                            && tm_val.tm_min == pre_min
+                            && tm_val.tm_yday != last_presync_day
+                        {
+                            last_presync_day = tm_val.tm_yday;
+                            info!(
+                                "[Schedule] Pre-broadcast NTP synchronization window at {:02}:{:02} (2m before {:02}:{:02} broadcast)...",
+                                tm_val.tm_hour, tm_val.tm_min, current_cfg.broadcast_hour, current_cfg.broadcast_minute
+                            );
+                            if let Some(ref mgr) = sntp {
+                                mgr.request_sync();
+                                let _ = mgr.sync(Duration::from_secs(6));
+                            }
                         }
 
+                        // Scheduled broadcast trigger
                         if tm_val.tm_hour == current_cfg.broadcast_hour as i32
                             && tm_val.tm_min == current_cfg.broadcast_minute as i32
                             && tm_val.tm_yday != last_schedule_day
@@ -208,6 +266,12 @@ fn main() -> anyhow::Result<()> {
                         carrier.stop(config.wifi.modem_sleep);
                     } else {
                         info!("[Button] Sync button pressed: Starting transmission.");
+                        if let Some(ref mgr) = sntp {
+                            if !mgr.is_synced() {
+                                info!("[Button] RTC not yet synchronized; waiting up to 3s for NTP reference...");
+                                let _ = mgr.sync(Duration::from_secs(3));
+                            }
+                        }
                         let cur_cfg = app_state.lock().map(|a| a.config.clone()).unwrap_or_else(|_| config.clone());
                         carrier.start(&cur_cfg, None);
                     }

@@ -5,6 +5,27 @@ All notable changes to the MultiBand 6 ESP32 Atomic Beacon project will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-11-09
+
+### Fixed
+- **Persistent SNTP Daemon Lifecycle**: Fixed critical bug where `EspSntp` was dropped immediately after initial boot attempt, causing the SNTP daemon to stop and leaving the system running on an un-disciplined 1970 boot timer. Retained `SntpManager` across application lifecycle with automatic 1-hour periodic re-sync (`sntp_set_sync_interval`).
+- **Boot SNTP Background Retry**: Added background retry loop polling every 15 seconds if initial boot sync does not complete immediately, recovering gracefully from Wi-Fi router / DNS delays.
+
+### Added
+- **Pre-Broadcast 2-Minute Fresh Sync**: Implemented pre-broadcast NTP synchronization window occurring 2 minutes before the scheduled transmission (e.g. at `01:53` for `01:55`). This disciplines the ESP32 RTC to sub-second precision while ensuring all 2.4 GHz Wi-Fi activity and 3.3V rail noise cease before the RF carrier starts.
+- **Station-Locked Local Time & Scheduling**: Aligned local wall clock and nightly schedule triggers with the active station's native timezone offset (`station.native_utc_offset_sec() + user_offset_hours`), matching watch Home City settings.
+- **Midnight Maintenance Sync**: Scheduled an automatic daily NTP refresh at midnight (`00:00`) station local time when idle.
+- **Web UI "Sync Time Now" Action**: Added a manual `POST /api/sync-ntp` endpoint and web UI button to allow immediate time synchronization on demand.
+- **Web UI NTP Syncing Indicator**: Displays `Syncing NTP...` on the live clocks when RTC epoch is un-synchronized (`< 1_700_000_000`) instead of misleading 1970 timestamps.
+
+## [0.1.2] - 2026-11-08
+
+### Fixed
+- **BPC P1 Sub-Frame Indexing**: Aligned BPC 20-second sub-frame frame counter bits.
+- **JJY :15/:45 Parity & DOW**: Corrected year and day-of-week bit positions on 15s and 45s markers.
+- **WWVB DST Transition Bits**: Handled DST status flags.
+- **50ms Boundary Lock**: Fixed tick timer alignment.
+
 ## [0.1.1] - 2026-11-08
 
 ### Fixed

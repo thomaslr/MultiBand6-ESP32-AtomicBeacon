@@ -236,15 +236,25 @@ function tickClock() {
   const elapsedSec = Math.floor((Date.now() - clientEpochBaseMs) / 1000);
   const currentSec = serverEpochSec + elapsedSec;
 
-  const utcDate = new Date(currentSec * 1000);
-  document.getElementById('utcClock').innerText =
-    utcDate.toISOString().substring(11, 19) + ' UTC';
+  const utcEl = document.getElementById('utcClock');
+  const localEl = document.getElementById('localClock');
 
-  const st = STATIONS[activeStationIdx] || STATIONS[0];
-  const stationSec = currentSec + st.tzOffset + (userOffsetHours * 3600);
-  const stationDate = new Date(stationSec * 1000);
-  document.getElementById('localClock').innerText =
-    stationDate.toISOString().substring(11, 19);
+  if (currentSec < 1700000000) {
+    if (utcEl) utcEl.innerText = 'Syncing NTP...';
+    if (localEl) localEl.innerText = 'Syncing NTP...';
+  } else {
+    const utcDate = new Date(currentSec * 1000);
+    if (utcEl) {
+      utcEl.innerText = utcDate.toISOString().substring(11, 19) + ' UTC';
+    }
+
+    const st = STATIONS[activeStationIdx] || STATIONS[0];
+    const stationSec = currentSec + st.tzOffset + (userOffsetHours * 3600);
+    const stationDate = new Date(stationSec * 1000);
+    if (localEl) {
+      localEl.innerText = stationDate.toISOString().substring(11, 19);
+    }
+  }
 
   updateStopButtonCountdown();
 }
@@ -496,6 +506,30 @@ async function saveNtpConfig(e) {
     alertBox.className = 'alert error';
     alertBox.innerText = '✗ Error saving NTP settings: ' + err.message;
     alertBox.style.display = 'block';
+  }
+}
+
+async function forceNtpSync() {
+  const alertBox = document.getElementById('ntpAlert');
+  if (alertBox) {
+    alertBox.className = 'alert';
+    alertBox.innerText = 'Requesting immediate NTP synchronization...';
+    alertBox.style.display = 'block';
+  }
+  try {
+    const res = await fetch('/api/sync-ntp', { method: 'POST' });
+    if (!res.ok) throw new Error('Sync request failed');
+    setTimeout(pollStatus, 1500);
+    if (alertBox) {
+      alertBox.className = 'alert success';
+      alertBox.innerText = '✓ NTP synchronization requested from server.';
+      setTimeout(() => { alertBox.style.display = 'none'; }, 6000);
+    }
+  } catch (err) {
+    if (alertBox) {
+      alertBox.className = 'alert error';
+      alertBox.innerText = '✗ Error: ' + err.message;
+    }
   }
 }
 

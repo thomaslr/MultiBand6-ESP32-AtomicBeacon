@@ -471,7 +471,11 @@ If you use World Time mode on your watch:
 
 ### 5. Network Credentials & NTP Discipline
 * Wi-Fi SSID and Password can be reconfigured from the dashboard and saved directly to ESP32 non-volatile flash memory (NVS Preferences).
-* Configurable NTP server (default: `pool.ntp.org`).
+* **Configurable Stratum-1 NTP Servers:** Select from `pool.ntp.org`, `time.google.com`, `time.cloudflare.com`, or custom servers.
+* **Persistent Background SNTP Daemon:** The `SntpManager` runs continuously in lwIP, automatically re-synchronizing the RTC every 1 hour to prevent drift from the ESP32's internal RC oscillator (which can drift 2–8 seconds/day without discipline).
+* **Pre-Broadcast Fresh Sync Window:** 2 minutes prior to any scheduled broadcast (e.g. at `01:53` for an `01:55` transmission), an immediate NTP refresh is triggered. This disciplines the clock down to sub-second precision before the RF carrier starts.
+* **Silent Broadcast Window:** During active RF transmission, NTP polling and Wi-Fi traffic are paused, preserving a clean 3.3V power rail and ensuring clock step adjustments never occur mid-frame while watches are receiving.
+* **Station-Locked Local Time:** Local time and nighttime schedules automatically track the native timezone of the active station (e.g. BPC $\rightarrow$ CST UTC+8, JJY $\rightarrow$ JST UTC+9, DCF77 $\rightarrow$ CET UTC+1), matching the Home City set on your watches.
 
 ---
 

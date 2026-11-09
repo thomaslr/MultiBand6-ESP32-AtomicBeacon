@@ -26,3 +26,10 @@
 - Embedded web assets in `data/` (`index.html`, `setup.html`, `app.js`, `style.css`, `favicon.svg`) pre-compressed with Gzip at build time.
 - Dedicated Network & Wi-Fi settings page with live signal quality, nearby Wi-Fi scanner, NTP configuration, and credentials reset button.
 - Captive portal detection endpoints (`/hotspot-detect.html`, `/generate_204`, etc.) route directly to the setup portal.
+
+## 5. SNTP Time Synchronization & Station-Locked Scheduling (PERMANENT RULE)
+- **Lifecycle & Persistence**: `EspSntp` / `SntpManager` MUST be retained in memory across the entire application lifetime so lwIP's background SNTP service stays active with automatic hourly re-synchronization (`sntp_set_sync_interval(3_600_000)`).
+- **Background Boot Retry**: If initial boot synchronization does not complete immediately, continuously retry in the background every 15 seconds until an atomic epoch (`> 1_700_000_000`) is established.
+- **Pre-Broadcast Fresh Sync**: Always trigger an immediate NTP sync 2 minutes prior to any scheduled broadcast (e.g. at `01:53` for an `01:55` broadcast window) so the ESP32 RTC drift is eliminated and the clock is disciplined to sub-second precision before the RF carrier starts.
+- **Silent Transmit Window**: Never poll or step NTP during active RF broadcast to eliminate phase jumps and prevent 2.4 GHz supply ripple on the 3.3V rail.
+- **Station-Locked Local Time (Option B)**: Local time and nightly schedules always track the active time signal station's native timezone offset (`station.native_utc_offset_sec() + user_offset_hours`), ensuring watches configured for that station's region receive the signal during their expected nighttime auto-receive window.

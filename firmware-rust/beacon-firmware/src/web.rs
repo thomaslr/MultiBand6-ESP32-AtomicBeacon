@@ -13,6 +13,7 @@ use log::info;
 
 use crate::carrier::CarrierManager;
 use crate::ota::{flash_stream, get_ota_status, update_from_url};
+use crate::sntp::SntpManager;
 use crate::storage::NvsConfigStorage;
 use crate::wifi::apply_wifi_radio_config;
 
@@ -44,6 +45,7 @@ pub struct AppState {
     pub wifi_ssid: String,
     pub wifi_rssi: i32,
     pub scanned_ssids: Vec<String>,
+    pub sntp: Option<Arc<SntpManager>>,
 }
 
 #[derive(serde::Serialize)]
@@ -55,6 +57,7 @@ struct StatusResponse {
     offset_hours: i32,
     epoch_sec: u64,
     uptime_sec: u32,
+    ntp_synced: bool,
     carousel_enabled: bool,
     carousel_stage: usize,
     carousel_total_stages: usize,
@@ -146,6 +149,7 @@ pub fn create_web_server(state: Arc<Mutex<AppState>>) -> Result<EspHttpServer<'s
             offset_hours: *c_state.user_offset_hours.lock().unwrap(),
             epoch_sec: now_sec as u64,
             uptime_sec,
+            ntp_synced: now_sec > 1_700_000_000,
             carousel_enabled: c_state.carousel_enabled.load(Ordering::Relaxed),
             carousel_stage: c_state.carousel_stage_idx.load(Ordering::Relaxed) + 1,
             carousel_total_stages: total_stages,
@@ -180,9 +184,16 @@ pub fn create_web_server(state: Arc<Mutex<AppState>>) -> Result<EspHttpServer<'s
         match serde_json::from_slice::<ConfigPatch>(&buf) {
             Ok(patch) => {
                 let mut app = s_patch.lock().unwrap();
+                let old_ntp = app.config.system.ntp_server.clone();
                 app.config.apply_patch(patch);
                 let _ = app.storage.save_config(&app.config);
                 apply_wifi_radio_config(&app.config.wifi);
+
+                if app.config.system.ntp_server != old_ntp {
+                    if let Some(ref sntp) = app.sntp {
+                        sntp.request_sync();
+                    }
+                }
                 send_json(req, 200, r#"{"status":"saved"}"#)
             }
             Err(e) => {
@@ -192,10 +203,26 @@ pub fn create_web_server(state: Arc<Mutex<AppState>>) -> Result<EspHttpServer<'s
         }
     })?;
 
-    // 5. POST /api/transmit
+    // 5. POST /api/sync-ntp (force immediate NTP synchronization)
+    let s_ntp = Arc::clone(&state);
+    server.fn_handler("/api/sync-ntp", Method::Post, move |req| {
+        let app = s_ntp.lock().unwrap();
+        if let Some(ref sntp) = app.sntp {
+            sntp.request_sync();
+        }
+        send_json(req, 200, r#"{"status":"sync_requested"}"#)
+    })?;
+
+    // 6. POST /api/transmit
     let s_tx = Arc::clone(&state);
     server.fn_handler("/api/transmit", Method::Post, move |req| {
         let app = s_tx.lock().unwrap();
+        if let Some(ref sntp) = app.sntp {
+            if !sntp.is_synced() {
+                info!("[API] RTC not yet synchronized prior to broadcast; attempting 3s NTP sync...");
+                let _ = sntp.sync(std::time::Duration::from_secs(3));
+            }
+        }
         app.carrier.start(&app.config, None);
         send_json(req, 200, r#"{"status":"transmitting"}"#)
     })?;
