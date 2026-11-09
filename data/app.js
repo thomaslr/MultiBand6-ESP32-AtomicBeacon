@@ -649,7 +649,7 @@ function renderUpdateBadge(status) {
   } else if (status.last_check_status === 'ok') {
     badge.innerText = `✓ Up to date (${currentVer})`;
     badge.className = 'badge badge-green';
-    if (btn) btn.innerText = `⬇ Review & Flash ${remoteTag}`;
+    if (btn) btn.innerText = `⬇ Re-flash ${currentVer}`;
   } else if (status.last_check_status === 'pending_initial_check') {
     badge.innerText = '⏳ Initial check pending...';
     badge.className = 'badge';
@@ -686,7 +686,15 @@ async function triggerDeviceOtaCheck() {
   try {
     const res = await fetch('/api/ota/check', { method: 'POST' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    setTimeout(fetchOtaStatus, 2500);
+
+    let attempts = 0;
+    const pollInterval = setInterval(async () => {
+      attempts++;
+      await fetchOtaStatus();
+      if (attempts >= 5 || (latestOtaStatus && latestOtaStatus.update_available)) {
+        clearInterval(pollInterval);
+      }
+    }, 1500);
   } catch (err) {
     if (meta) meta.innerText = 'Check request failed: ' + err.message;
   }
