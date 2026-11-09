@@ -18,7 +18,7 @@ let clientEpochBaseMs = Date.now();
 let transmitRemainSec = 0;
 let transmitRemainBaseMs = Date.now();
 let appConfig = null;
-let currentFirmwareVersion = '0.1.4';
+let currentFirmwareVersion = '0.1.5';
 let latestReleaseData = null;
 
 // --- Tab Management ---
@@ -565,6 +565,8 @@ async function rebootEsp32() {
 
 // --- OTA Firmware Actions ---
 
+let latestOtaStatus = null;
+
 // SemVer comparison and Markdown formatting helpers
 function parseSemVer(v) {
   if (!v) return [0, 0, 0];
@@ -612,98 +614,69 @@ function formatTimeAgo(ts) {
   return `${diffDays}d ago`;
 }
 
-// 24-hour daily OTA update check
-const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-
-async function checkForUpdates(force = false) {
-  const badge = document.getElementById('otaUpdateBadge');
-  const meta = document.getElementById('otaCheckMeta');
-  const lastCheck = parseInt(localStorage.getItem('ota_last_check_ts') || '0', 10);
-  const now = Date.now();
-  const isDue = (now - lastCheck) >= ONE_DAY_MS;
-
-  // Use cached result if not forced and less than 24 hours have elapsed
-  if (!force && !isDue) {
-    const cached = localStorage.getItem('ota_cached_release');
-    if (cached) {
-      try {
-        const data = JSON.parse(cached);
-        latestReleaseData = data;
-        renderUpdateBadge(data, lastCheck);
-        return;
-      } catch (e) {
-        // Fall through to network fetch if corrupted
-      }
-    }
-  }
-
-  if (badge) {
-    badge.innerText = 'Checking GitHub...';
-    badge.className = 'badge';
-  }
-  if (meta) meta.innerText = 'Daily check: checking GitHub Releases API...';
-
-  try {
-    const res = await fetch('https://api.github.com/repos/thomaslr/MultiBand6-ESP32-AtomicBeacon/releases/latest');
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-
-    latestReleaseData = data;
-    localStorage.setItem('ota_last_check_ts', String(now));
-    localStorage.setItem('ota_cached_release', JSON.stringify(data));
-
-    renderUpdateBadge(data, now);
-  } catch (err) {
-    console.warn('[OTA] Check failed:', err);
-    const cached = localStorage.getItem('ota_cached_release');
-    if (cached) {
-      try {
-        const data = JSON.parse(cached);
-        latestReleaseData = data;
-        renderUpdateBadge(data, lastCheck);
-        if (meta) meta.innerText = `Daily check: using cached result (${formatTimeAgo(lastCheck)}). Connection failed: ${err.message}`;
-        return;
-      } catch (_) {}
-    }
-    if (badge) {
-      badge.innerText = 'Check unavailable';
-      badge.className = 'badge';
-    }
-    if (meta) meta.innerText = `Daily check failed: ${err.message}`;
-  }
-}
-
-function renderUpdateBadge(data, timestamp) {
+function renderUpdateBadge(status) {
   const badge = document.getElementById('otaUpdateBadge');
   const meta = document.getElementById('otaCheckMeta');
   const btn = document.getElementById('btnOtaUrl');
-  if (!data || !badge) return;
+  if (!badge) return;
 
-  const remoteTag = data.tag_name || 'latest';
+  if (!status) {
+    badge.innerText = 'Check unavailable';
+    badge.className = 'badge';
+    return;
+  }
+
   const currentVer = currentFirmwareVersion.startsWith('v') ? currentFirmwareVersion : ('v' + currentFirmwareVersion);
-  const isNewer = isNewerVersion(remoteTag, currentVer);
+  const remoteTag = status.latest_version || currentVer;
+  const isNewer = Boolean(status.update_available);
 
   if (isNewer) {
     badge.innerText = `✨ Update Available: ${remoteTag}`;
     badge.className = 'badge badge-update';
     if (btn) btn.innerText = `⬇ Review & Apply ${remoteTag}`;
-  } else {
+  } else if (status.last_check_status === 'ok') {
     badge.innerText = `✓ Up to date (${currentVer})`;
     badge.className = 'badge badge-green';
     if (btn) btn.innerText = `⬇ Review & Flash ${remoteTag}`;
+  } else if (status.last_check_status === 'pending_initial_check') {
+    badge.innerText = '⏳ Initial check pending...';
+    badge.className = 'badge';
+  } else {
+    badge.innerText = 'Check unavailable';
+    badge.className = 'badge';
   }
 
-  // Update URL input if GitHub release provides .bin asset
-  if (data.assets && data.assets.length > 0) {
-    const binAsset = data.assets.find(a => a.name.endsWith('.bin')) || data.assets[0];
-    if (binAsset && binAsset.browser_download_url) {
-      const urlEl = document.getElementById('otaUrl');
-      if (urlEl) urlEl.value = binAsset.browser_download_url;
-    }
+  // Update binary URL input if provided
+  if (status.binary_url) {
+    const urlEl = document.getElementById('otaUrl');
+    if (urlEl) urlEl.value = status.binary_url;
   }
 
   if (meta) {
-    meta.innerText = `Daily check: checked ${formatTimeAgo(timestamp)} (system checks once per day)`;
+    if (status.last_check_epoch && status.last_check_epoch > 0) {
+      meta.innerText = `Daily check: checked ${formatTimeAgo(status.last_check_epoch * 1000)} (auto-checks after boot & at 00:05 midnight)`;
+    } else {
+      meta.innerText = 'Daily check: auto-checks after boot and daily at 00:05 midnight';
+    }
+  }
+}
+
+async function triggerDeviceOtaCheck() {
+  const badge = document.getElementById('otaUpdateBadge');
+  const meta = document.getElementById('otaCheckMeta');
+  if (badge) {
+    badge.innerText = 'Checking ESP32...';
+    badge.className = 'badge';
+  }
+  if (meta) {
+    meta.innerText = 'ESP32 querying latest release from GitHub...';
+  }
+  try {
+    const res = await fetch('/api/ota/check', { method: 'POST' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    setTimeout(fetchOtaStatus, 2500);
+  } catch (err) {
+    if (meta) meta.innerText = 'Check request failed: ' + err.message;
   }
 }
 
@@ -712,6 +685,8 @@ async function fetchOtaStatus() {
     const res = await fetch('/api/ota/status');
     if (!res.ok) throw new Error('OTA status fetch failed');
     const data = await res.json();
+    latestOtaStatus = data;
+
     if (data.firmware_version) {
       currentFirmwareVersion = data.firmware_version;
       const cleanVer = data.firmware_version.startsWith('v') ? data.firmware_version : ('v' + data.firmware_version);
@@ -720,24 +695,78 @@ async function fetchOtaStatus() {
     document.getElementById('otaRunningSlot').innerText = data.running_slot || '--';
     document.getElementById('otaNextSlot').innerText = data.next_update_slot || '--';
     if (data.default_url) document.getElementById('otaUrl').value = data.default_url;
-    checkForUpdates(false);
+
+    renderUpdateBadge(data);
   } catch (e) {
     console.warn('OTA status error:', e);
   }
 }
 
 // Reports release details and changelog before asking user to confirm
-function showOtaReportBeforeApply() {
-  if (!latestReleaseData) {
-    checkForUpdates(true).then(() => {
-      if (latestReleaseData) {
-        showOtaReportBeforeApply();
-      } else {
-        alert('Could not retrieve release details from GitHub. Please verify internet connectivity or enter the binary URL directly.');
-      }
-    });
-    return;
+async function showOtaReportBeforeApply() {
+  const currentVer = currentFirmwareVersion.startsWith('v') ? currentFirmwareVersion : ('v' + currentFirmwareVersion);
+  const targetVer = (latestOtaStatus && latestOtaStatus.latest_version) ? latestOtaStatus.latest_version : currentVer;
+  const isNewer = latestOtaStatus ? Boolean(latestOtaStatus.update_available) : false;
+
+  const notesPlaceholder = '<p style="color: var(--text-muted);">Fetching release notes from GitHub...</p>';
+  const title = isNewer
+    ? `🚀 New Firmware Update Available: ${targetVer}`
+    : `📦 Firmware Release Details: ${targetVer}`;
+
+  const renderModal = (contentHtml) => {
+    const html = `
+      <div style="margin-bottom: 14px; padding: 12px; background: rgba(0, 0, 0, 0.35); border-radius: 10px; border: 1px solid var(--border);">
+        <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+          <span style="color: var(--text-muted);">Current Installed Version:</span>
+          <strong>${currentVer}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 13px;">
+          <span style="color: var(--text-muted);">Target Release Version:</span>
+          <strong style="color: ${isNewer ? '#fef08a' : '#10b981'}; font-weight: 700;">${targetVer} ${isNewer ? '(Newer Version)' : '(Currently Installed)'}</strong>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <div style="font-weight: 700; color: var(--accent); margin-bottom: 8px; font-size: 13px;">
+          📋 What's Included in This Release:
+        </div>
+        <div id="otaModalNotes" style="max-height: 220px; overflow-y: auto; padding: 10px 14px; background: rgba(0, 0, 0, 0.2); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);">
+          ${contentHtml}
+        </div>
+      </div>
+
+      <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.45;">
+        🛡️ <strong>Dual-OTA Rollback Protected:</strong> The firmware will stream directly into your standby partition over TLS. The ESP32 bootloader automatically rolls back to your working slot if verification fails.
+      </div>
+
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="hideInfo()">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="confirmAndApplyOta()">
+          ⬇ Flash &amp; Apply ${targetVer}
+        </button>
+      </div>
+    `;
+    showInfo(title, html);
+  };
+
+  renderModal(notesPlaceholder);
+
+  // Asynchronously fetch GitHub release notes to populate details without blocking modal
+  try {
+    const res = await fetch(`https://api.github.com/repos/thomaslr/MultiBand6-ESP32-AtomicBeacon/releases/tags/${targetVer}`);
+    if (res.ok) {
+      const data = await res.json();
+      const el = document.getElementById('otaModalNotes');
+      if (el) el.innerHTML = formatMarkdown(data.body);
+    } else {
+      const el = document.getElementById('otaModalNotes');
+      if (el) el.innerHTML = `<p>Release ${targetVer} is verified and ready to install. <a href="https://github.com/thomaslr/MultiBand6-ESP32-AtomicBeacon/releases/tag/${targetVer}" target="_blank" rel="noopener noreferrer">View changelog on GitHub</a>.</p>`;
+    }
+  } catch (_) {
+    const el = document.getElementById('otaModalNotes');
+    if (el) el.innerHTML = `<p>Release ${targetVer} is ready to flash directly from GitHub Releases. <a href="https://github.com/thomaslr/MultiBand6-ESP32-AtomicBeacon/releases" target="_blank" rel="noopener noreferrer">View changelog on GitHub</a>.</p>`;
   }
+}
 
   const rel = latestReleaseData;
   const currentVer = currentFirmwareVersion.startsWith('v') ? currentFirmwareVersion : ('v' + currentFirmwareVersion);
@@ -917,15 +946,15 @@ window.onload = () => {
   setInterval(pollStatus, 60000); // 1-minute status refresh from ESP32
   setInterval(tickClock, 1000);   // 1-second local clock tick
 
-  // Daily OTA update check (checked on startup, and once every hour to verify if 24h elapsed)
-  checkForUpdates(false);
-  setInterval(() => checkForUpdates(false), 3600000);
+  // Fetch initial OTA update status from ESP32
+  fetchOtaStatus();
+  setInterval(fetchOtaStatus, 300000); // 5-minute OTA status refresh from ESP32
 
   // Immediate refresh when tab becomes visible after being backgrounded
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) {
       pollStatus();
-      checkForUpdates(false);
+      fetchOtaStatus();
     }
   });
 };

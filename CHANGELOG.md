@@ -5,6 +5,18 @@ All notable changes to the MultiBand 6 ESP32 Atomic Beacon project will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.5] - 2026-11-09
+
+### Added
+- **ESP32 Firmware-Driven Update Checks**: Shifted OTA update checking from client-side browser JavaScript onto the ESP32 hardware:
+  - **Post-Boot Scan**: Runs ~15 seconds after booting once Wi-Fi and SNTP time synchronization are established.
+  - **Midnight Daily Scan**: Runs automatically at `00:05` station local time (5 minutes after the midnight SNTP maintenance sync).
+  - **Lightweight `version.json` Stream**: ESP32 downloads only the tiny ~180-byte `version.json` over HTTPS with hardware mbedTLS root certificate validation.
+  - **Instant Dashboard Rendering**: Cached update state in `OtaStatus` renders immediately in the web UI with zero latency and eliminates browser-side CORS or GitHub API rate-limiting delays.
+  - **On-Demand API Trigger**: Added `POST /api/ota/check` so the web dashboard "Check for Updates" button triggers an immediate check on the ESP32.
+- **Cache-Control Modernization**: Changed static asset delivery in the web server to `no-cache, no-store, must-revalidate`, guaranteeing browsers never execute stale JavaScript after an OTA firmware upgrade.
+- **Manual Flashing Guarantee**: Strict separation of scanning from flashing; automatic routines only query version metadata, and firmware binary downloads/flashing remain 100% manual opt-in.
+
 ## [0.1.4] - 2026-11-09
 
 ### Added

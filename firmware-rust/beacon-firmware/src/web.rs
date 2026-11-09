@@ -12,7 +12,7 @@ use esp_idf_svc::io::EspIOError;
 use log::info;
 
 use crate::carrier::CarrierManager;
-use crate::ota::{flash_stream, get_ota_status, update_from_url};
+use crate::ota::{flash_stream, get_ota_status, update_from_url, OtaUpdateState};
 use crate::sntp::SntpManager;
 use crate::storage::NvsConfigStorage;
 use crate::wifi::apply_wifi_radio_config;
@@ -46,7 +46,62 @@ pub struct AppState {
     pub wifi_rssi: i32,
     pub scanned_ssids: Vec<String>,
     pub sntp: Option<Arc<SntpManager>>,
+    pub ota_update: OtaUpdateState,
 }
+
+pub fn perform_ota_check(app_state: Arc<Mutex<AppState>>) {
+    let (is_tx, is_ota) = match app_state.lock() {
+        Ok(state) => (
+            state.carrier.state.is_transmitting.load(Ordering::Relaxed),
+            crate::ota::is_ota_in_progress(),
+        ),
+        Err(_) => return,
+    };
+    if is_tx || is_ota {
+        info!("[OTA Check] Skipping update check: RF broadcast or OTA currently active.");
+        return;
+    }
+
+    info!("[OTA Check] Querying latest version.json from GitHub Releases...");
+    let now_sec = unsafe { esp_idf_svc::sys::time(core::ptr::null_mut()) as u64 };
+    match crate::ota::query_remote_update() {
+        Ok((info, update_available)) => {
+            info!(
+                "[OTA Check] Remote version: {}, local: {}, update_available: {}",
+                info.version,
+                env!("CARGO_PKG_VERSION"),
+                update_available
+            );
+            if let Ok(mut app) = app_state.lock() {
+                app.ota_update = OtaUpdateState {
+                    latest_version: info.version,
+                    update_available,
+                    binary_url: info.url,
+                    last_check_epoch: now_sec,
+                    last_check_status: "ok".to_string(),
+                };
+            }
+        }
+        Err(err) => {
+            log::warn!("[OTA Check] Update check error: {}", err);
+            if let Ok(mut app) = app_state.lock() {
+                app.ota_update.last_check_epoch = now_sec;
+                app.ota_update.last_check_status = format!("error: {}", err);
+            }
+        }
+    }
+}
+
+pub fn trigger_ota_check_background(app_state: Arc<Mutex<AppState>>) {
+    let state_clone = Arc::clone(&app_state);
+    let _ = std::thread::Builder::new()
+        .stack_size(10240)
+        .name("ota_check".to_string())
+        .spawn(move || {
+            perform_ota_check(state_clone);
+        });
+}
+
 
 #[derive(serde::Serialize)]
 struct StatusResponse {
@@ -315,11 +370,24 @@ pub fn create_web_server(state: Arc<Mutex<AppState>>) -> Result<EspHttpServer<'s
     })?;
 
     // 11. OTA Endpoints
-    server.fn_handler("/api/ota/status", Method::Get, |req| {
-        let status = get_ota_status();
+    let s_ota = Arc::clone(&state);
+    server.fn_handler("/api/ota/status", Method::Get, move |req| {
+        let ota_update = s_ota
+            .lock()
+            .map(|a| a.ota_update.clone())
+            .unwrap_or_default();
+        let status = get_ota_status(&ota_update);
         let json = serde_json::to_string(&status).unwrap_or_default();
         send_json(req, 200, &json)
     })?;
+
+    let s_check = Arc::clone(&state);
+    server.fn_handler("/api/ota/check", Method::Post, move |req| {
+        info!("[HTTP] On-demand OTA update check requested via API");
+        trigger_ota_check_background(Arc::clone(&s_check));
+        send_json(req, 200, r#"{"status":"checking"}"#)
+    })?;
+
 
     server.fn_handler("/api/ota/update", Method::Post, |mut req| {
         let len = req.content_len().unwrap_or(0) as usize;
@@ -495,7 +563,9 @@ fn send_binary(
         Some("OK"),
         &[
             ("Content-Type", content_type),
-            ("Cache-Control", "public, max-age=3600"),
+            ("Cache-Control", "no-cache, no-store, must-revalidate"),
+            ("Pragma", "no-cache"),
+            ("Expires", "0"),
             ("Connection", "close"),
             if use_gzip {
                 ("Content-Encoding", "gzip")

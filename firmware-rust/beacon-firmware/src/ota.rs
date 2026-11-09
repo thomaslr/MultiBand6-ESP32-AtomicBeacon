@@ -15,6 +15,8 @@ use log::{info, warn};
 
 pub const DEFAULT_GITHUB_OTA_URL: &str =
     "https://github.com/thomaslr/MultiBand6-ESP32-AtomicBeacon/releases/latest/download/multiband6-beacon.bin";
+pub const DEFAULT_VERSION_CHECK_URL: &str =
+    "https://github.com/thomaslr/MultiBand6-ESP32-AtomicBeacon/releases/latest/download/version.json";
 
 static OTA_IN_PROGRESS: AtomicBool = AtomicBool::new(false);
 
@@ -30,6 +32,37 @@ impl Drop for OtaGuard {
     }
 }
 
+#[derive(serde::Deserialize, serde::Serialize, Clone, Debug)]
+pub struct RemoteVersionInfo {
+    pub version: String,
+    pub url: String,
+    #[serde(default)]
+    pub sha256: Option<String>,
+    #[serde(default)]
+    pub built_at: Option<String>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
+pub struct OtaUpdateState {
+    pub latest_version: String,
+    pub update_available: bool,
+    pub binary_url: String,
+    pub last_check_epoch: u64,
+    pub last_check_status: String,
+}
+
+impl Default for OtaUpdateState {
+    fn default() -> Self {
+        Self {
+            latest_version: String::new(),
+            update_available: false,
+            binary_url: String::new(),
+            last_check_epoch: 0,
+            last_check_status: "pending_initial_check".to_string(),
+        }
+    }
+}
+
 #[derive(serde::Serialize, Clone, Debug)]
 pub struct OtaStatus {
     pub running_slot: String,
@@ -37,6 +70,11 @@ pub struct OtaStatus {
     pub firmware_version: &'static str,
     pub default_url: &'static str,
     pub rollback_enabled: bool,
+    pub update_available: bool,
+    pub latest_version: String,
+    pub binary_url: String,
+    pub last_check_epoch: u64,
+    pub last_check_status: String,
 }
 
 pub fn mark_running_app_valid() {
@@ -55,7 +93,7 @@ pub fn mark_running_app_valid() {
     }
 }
 
-pub fn get_ota_status() -> OtaStatus {
+pub fn get_ota_status(update_state: &OtaUpdateState) -> OtaStatus {
     let mut running_slot = "factory".to_string();
     let mut next_update_slot = "none".to_string();
 
@@ -74,8 +112,75 @@ pub fn get_ota_status() -> OtaStatus {
         firmware_version: env!("CARGO_PKG_VERSION"),
         default_url: DEFAULT_GITHUB_OTA_URL,
         rollback_enabled: true,
+        update_available: update_state.update_available,
+        latest_version: if update_state.latest_version.is_empty() {
+            format!("v{}", env!("CARGO_PKG_VERSION"))
+        } else {
+            update_state.latest_version.clone()
+        },
+        binary_url: if update_state.binary_url.is_empty() {
+            DEFAULT_GITHUB_OTA_URL.to_string()
+        } else {
+            update_state.binary_url.clone()
+        },
+        last_check_epoch: update_state.last_check_epoch,
+        last_check_status: update_state.last_check_status.clone(),
     }
 }
+
+/// Fetches the latest version metadata from GitHub Releases `version.json` and checks if newer.
+pub fn query_remote_update() -> Result<(RemoteVersionInfo, bool), String> {
+    let config = HttpConfig {
+        follow_redirects_policy: FollowRedirectsPolicy::FollowGetHead,
+        crt_bundle_attach: Some(esp_idf_svc::sys::esp_crt_bundle_attach),
+        buffer_size: Some(2048),
+        buffer_size_tx: Some(1024),
+        timeout: Some(Duration::from_secs(15)),
+        ..Default::default()
+    };
+
+    let mut conn = EspHttpConnection::new(&config)
+        .map_err(|e| format!("HTTP client init failed: {:?}", e))?;
+
+    conn.initiate_request(
+        Method::Get,
+        DEFAULT_VERSION_CHECK_URL,
+        &[("User-Agent", "multiband6-beacon-ota"), ("Accept", "application/json")],
+    )
+    .map_err(|e| format!("HTTP GET init failed: {:?}", e))?;
+
+    conn.initiate_response()
+        .map_err(|e| format!("HTTP response failed: {:?}", e))?;
+
+    let status = conn.status();
+    if !(200..300).contains(&status) {
+        return Err(format!("Server returned HTTP {}", status));
+    }
+
+    let mut body = Vec::new();
+    let mut buf = [0u8; 512];
+    loop {
+        match conn.read(&mut buf) {
+            Ok(0) => break,
+            Ok(n) => {
+                body.extend_from_slice(&buf[..n]);
+                if body.len() > 4096 {
+                    return Err("version.json response too large (>4KB)".to_string());
+                }
+            }
+            Err(e) => return Err(format!("Download error: {:?}", e)),
+        }
+    }
+
+    let info: RemoteVersionInfo = serde_json::from_slice(&body)
+        .map_err(|e| format!("Failed to parse version.json: {:?}", e))?;
+
+    let local_ver = env!("CARGO_PKG_VERSION");
+    let is_newer = beacon_core::is_newer_version(&info.version, local_ver);
+
+    Ok((info, is_newer))
+}
+
 
 pub fn update_from_url(url: &str) -> Result<(), String> {
     info!("[OTA] Starting OTA download from: {}", url);

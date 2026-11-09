@@ -136,6 +136,7 @@ fn main() -> anyhow::Result<()> {
                 wifi_rssi: 0,
                 scanned_ssids: Vec::new(),
                 sntp: sntp.clone(),
+                ota_update: crate::ota::OtaUpdateState::default(),
             }));
 
             // Launch Main Web Server
@@ -153,6 +154,9 @@ fn main() -> anyhow::Result<()> {
             let mut last_schedule_day = -1i32;
             let mut last_presync_day = -1i32;
             let mut last_midnight_sync_day = -1i32;
+            let mut last_midnight_ota_day = -1i32;
+            let mut boot_ota_checked = false;
+            let boot_time_ms = unsafe { (esp_idf_svc::sys::esp_timer_get_time() / 1000) as u32 };
             let mut last_bg_retry_ms = 0u32;
             let mut last_is_tx = false;
 
@@ -200,6 +204,13 @@ fn main() -> anyhow::Result<()> {
                     }
                 }
 
+                // Initial OTA update check quickly after boot (~15s or when RTC synchronized)
+                if !boot_ota_checked && !is_tx && (is_synced || now_ms.saturating_sub(boot_time_ms) >= 15_000) {
+                    boot_ota_checked = true;
+                    info!("[Main] Performing initial post-boot OTA update check...");
+                    crate::web::trigger_ota_check_background(Arc::clone(&app_state));
+                }
+
                 // Check transmission duration timeout
                 if is_tx {
                     let tx_start = carrier.state.transmit_start_sec.load(Ordering::Relaxed);
@@ -233,6 +244,16 @@ fn main() -> anyhow::Result<()> {
                         if let Some(ref mgr) = sntp {
                             mgr.request_sync();
                         }
+                    }
+
+                    // Daily firmware update check: 5 minutes after midnight (00:05 station local time)
+                    if tm_val.tm_hour == 0
+                        && tm_val.tm_min == 5
+                        && tm_val.tm_yday != last_midnight_ota_day
+                    {
+                        last_midnight_ota_day = tm_val.tm_yday;
+                        info!("[Schedule] Post-midnight scheduled check for firmware updates...");
+                        crate::web::trigger_ota_check_background(Arc::clone(&app_state));
                     }
 
                     // Scheduled broadcast logic
