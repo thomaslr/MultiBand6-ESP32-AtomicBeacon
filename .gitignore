@@ -2,6 +2,7 @@
 firmware-rust/target/
 firmware-rust/**/.embuild/
 *.bin
+!docs/multiband6-beacon-factory.bin
 version.json
 release_notes.md
 

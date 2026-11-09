@@ -1,5 +1,6 @@
 //! Web Server and REST API Implementation.
 
+use std::collections::VecDeque;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
 
@@ -36,6 +37,37 @@ static ICON_192_PNG: &[u8] = include_bytes!("../../../data/icon-192.png");
 static ICON_192_PNG_GZ: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/icon-192.png.gz"));
 static ICON_512_PNG: &[u8] = include_bytes!("../../../data/icon-512.png");
 static ICON_512_PNG_GZ: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/icon-512.png.gz"));
+
+static DIAGNOSTIC_LOGS: Mutex<Option<VecDeque<String>>> = Mutex::new(None);
+
+/// Record a human-readable telemetry event in the in-memory circular diagnostics buffer.
+pub fn log_diagnostic(msg: &str) {
+    if let Ok(mut lock) = DIAGNOSTIC_LOGS.lock() {
+        let deque = lock.get_or_insert_with(|| VecDeque::with_capacity(80));
+        let now_sec = unsafe { esp_idf_svc::sys::time(core::ptr::null_mut()) as u32 };
+        let entry = if now_sec > 1_700_000_000 {
+            let mut tm = esp_idf_svc::sys::tm { ..Default::default() };
+            let t = now_sec as esp_idf_svc::sys::time_t;
+            unsafe { esp_idf_svc::sys::gmtime_r(&t, &mut tm) };
+            format!("[{:02}:{:02}:{:02} UTC] {}", tm.tm_hour, tm.tm_min, tm.tm_sec, msg)
+        } else {
+            let uptime_sec = unsafe { (esp_idf_svc::sys::esp_timer_get_time() / 1_000_000) as u32 };
+            format!("[+{}s] {}", uptime_sec, msg)
+        };
+        if deque.len() >= 80 {
+            deque.pop_front();
+        }
+        deque.push_back(entry);
+    }
+}
+
+#[derive(serde::Serialize)]
+struct LogsResponse {
+    logs: Vec<String>,
+    free_heap: u32,
+    min_free_heap: u32,
+    uptime_sec: u32,
+}
 
 pub struct AppState {
     pub config: AppConfig,
@@ -421,6 +453,37 @@ pub fn create_web_server(state: Arc<Mutex<AppState>>) -> Result<EspHttpServer<'s
                 send_json(req, 500, &err)
             }
         }
+    })?;
+
+    // 14. GET /api/logs
+    server.fn_handler("/api/logs", Method::Get, |req| {
+        let logs: Vec<String> = if let Ok(mut lock) = DIAGNOSTIC_LOGS.lock() {
+            let deque = lock.get_or_insert_with(|| VecDeque::with_capacity(80));
+            deque.iter().cloned().collect()
+        } else {
+            Vec::new()
+        };
+        let free_heap = unsafe { esp_idf_svc::sys::esp_get_free_heap_size() };
+        let min_free_heap = unsafe { esp_idf_svc::sys::esp_get_minimum_free_heap_size() };
+        let uptime_sec = unsafe { (esp_idf_svc::sys::esp_timer_get_time() / 1_000_000) as u32 };
+        let resp = LogsResponse {
+            logs,
+            free_heap,
+            min_free_heap,
+            uptime_sec,
+        };
+        let json = serde_json::to_string(&resp).unwrap_or_default();
+        send_json(req, 200, &json)
+    })?;
+
+    // 15. POST /api/logs/clear
+    server.fn_handler("/api/logs/clear", Method::Post, |req| {
+        if let Ok(mut lock) = DIAGNOSTIC_LOGS.lock() {
+            if let Some(deque) = lock.as_mut() {
+                deque.clear();
+            }
+        }
+        send_json(req, 200, r#"{"status":"cleared"}"#)
     })?;
 
     info!("[HTTP] Web server initialized on port 80");

@@ -5,6 +5,16 @@ All notable changes to the MultiBand 6 ESP32 Atomic Beacon project will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.6] - 2026-11-09
+
+### Added
+- **Dual Binary Packaging (Factory 0x0 & OTA)**: Release pipeline now generates both `multiband6-beacon-factory.bin` (compact merged image with bootloader and Dual-OTA table for first-time flashing at `0x0`) and `multiband6-beacon.bin` (application payload for over-the-air updates).
+- **1-Click Web Installer**: Hosted on GitHub Pages via ESP Web Tools for zero-software-install browser flashing and direct Wi-Fi configuration over WebSerial.
+- **Live Diagnostics Tab**: Web UI now features a real-time Hardware Telemetry dashboard (free heap, minimum free heap watermark, Wi-Fi RSSI) and an in-memory live system log terminal with auto-scroll, copy, and clear functions.
+- **Universal Radio Watch Compatibility Guide (`CASIO_GUIDE.md`)**: Detailed breakdown of regional radio-lock behavior, compatible Home City assignments (`HKG`, `TYO`, `BER`, `NYC`, `LON`), and manual sync operations across Casio MultiBand 6, Citizen Eco-Drive, Seiko, Timex, and Junghans.
+- **3D Printable Multi-Mount Enclosure & Table Stand (`enclosure/`)**: Parametric OpenSCAD models and print-ready STLs with M3 screw ears, dual zip-tie channels, 3M Command tape pad, and a 45° angled bedside nightstand cradle.
+- **Dedicated Quick Start Guide (`QUICKSTART.md`)**: 5-minute setup documentation for new users and makers.
+
 ## [0.1.5] - 2026-11-09
 
 ### Added

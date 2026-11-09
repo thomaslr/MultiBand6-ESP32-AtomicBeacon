@@ -27,7 +27,7 @@
     <div class="header">
       <div class="header-title-row">
         <h1>📡 TimeStation</h1>
-        <span class="badge" id="versionBadge">v0.1.5</span>
+        <span class="badge" id="versionBadge">v0.1.6</span>
         <a href="https://github.com/thomaslr/MultiBand6-ESP32-AtomicBeacon" target="_blank" rel="noopener noreferrer" class="github-header-btn" title="View Project on GitHub">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
@@ -48,6 +48,9 @@
       </button>
       <button class="tab-btn" id="tabBtnOta" onclick="switchTab('ota')">
         <span>⚡</span> Firmware OTA
+      </button>
+      <button class="tab-btn" id="tabBtnLogs" onclick="switchTab('logs')">
+        <span>📋</span> Diagnostics
       </button>
     </div>
 
@@ -338,7 +341,7 @@
         <div class="status-grid">
           <div class="stat-item">
             <span class="stat-label">Firmware Version</span>
-            <span class="stat-val" id="otaFirmwareVersion">v0.1.5</span>
+            <span class="stat-val" id="otaFirmwareVersion">v0.1.6</span>
           </div>
           <div class="stat-item">
             <span class="stat-label">Running Flash Slot</span>
@@ -399,6 +402,52 @@
       </div>
 
       <div id="otaAlert" class="alert"></div>
+    </div>
+
+    <!-- TAB 4: DIAGNOSTICS & SYSTEM LOGS -->
+    <div id="tabContentLogs" class="tab-content" style="display: none;">
+      <!-- System Telemetry Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>Hardware & Health Telemetry</span>
+          <button type="button" class="btn btn-sm btn-secondary" onclick="fetchLogs()">🔄 Refresh</button>
+        </div>
+        <div class="status-grid">
+          <div class="status-item">
+            <span class="status-label">Free Heap Memory</span>
+            <span class="status-value" id="diagFreeHeap">— KB</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Min Free Heap</span>
+            <span class="status-value" id="diagMinHeap">— KB</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">System Uptime</span>
+            <span class="status-value" id="diagUptime">—</span>
+          </div>
+          <div class="status-item">
+            <span class="status-label">Wi-Fi Signal</span>
+            <span class="status-value" id="diagRssi">— dBm</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Terminal Console Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>Live System Log Console</span>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <label style="font-size: 0.8rem; display: flex; align-items: center; gap: 4px; cursor: pointer;">
+              <input type="checkbox" id="autoScrollLogs" checked> Auto-Scroll
+            </label>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="copyLogs()">📋 Copy</button>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="clearLogs()">🗑️ Clear</button>
+          </div>
+        </div>
+        <div id="logConsole" class="terminal-console" style="background: rgba(5, 2, 12, 0.95); border: 1px solid var(--border); border-radius: 8px; padding: 12px; height: 260px; overflow-y: auto; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.82rem; line-height: 1.5; color: #a7f3d0; white-space: pre-wrap; word-break: break-all;">
+[Connecting to live system diagnostics...]
+        </div>
+      </div>
     </div>
 
     <!-- Footer Attribution & Repository Link -->

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TimeStation MultiBand 6 ESP32 Beacon — 1-Click Web Installer</title>
+  <link rel="icon" type="image/svg+xml" href="../data/favicon.svg">
+  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+  <style>
+    :root {
+      --bg: #090314;
+      --card-bg: rgba(26, 11, 46, 0.85);
+      --card-border: rgba(192, 132, 252, 0.25);
+      --primary: #c084fc;
+      --primary-gradient: linear-gradient(135deg, #c084fc 0%, #9333ea 50%, #7e22ce 100%);
+      --text: #f3e8ff;
+      --text-muted: #d8b4fe;
+      --text-dim: #a855f7;
+      --accent: #38bdf8;
+      --success: #34d399;
+      --warning: #fbbf24;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(147, 51, 234, 0.45) 0%, transparent 70%),
+        radial-gradient(circle at 85% 85%, rgba(126, 34, 206, 0.2) 0%, transparent 40%),
+        linear-gradient(180deg, #120426 0%, #080112 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .container {
+      max-width: 680px;
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 36px 32px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(168, 85, 247, 0.15);
+      backdrop-filter: blur(16px);
+      text-align: center;
+    }
+    .badge {
+      display: inline-block;
+      padding: 6px 14px;
+      background: rgba(192, 132, 252, 0.12);
+      border: 1px solid rgba(192, 132, 252, 0.35);
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 1.85rem;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #ffffff 30%, #d8b4fe 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle {
+      font-size: 0.98rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 28px;
+    }
+    .flasher-box {
+      background: rgba(15, 5, 30, 0.9);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 28px 20px;
+      margin-bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    esp-web-install-button {
+      --esp-tools-button-border-radius: 12px;
+      --esp-tools-button-color: #ffffff;
+      --esp-tools-button-background-color: #9333ea;
+      --esp-tools-button-padding: 14px 32px;
+      --esp-tools-button-font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .browser-warning {
+      display: none;
+      font-size: 0.88rem;
+      color: var(--warning);
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      padding: 12px;
+      border-radius: 10px;
+      margin-top: 10px;
+      width: 100%;
+    }
+    .steps {
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-bottom: 28px;
+      background: rgba(12, 4, 24, 0.6);
+      padding: 20px;
+      border-radius: 14px;
+      border: 1px solid rgba(192, 132, 252, 0.15);
+    }
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 0.92rem;
+      line-height: 1.45;
+    }
+    .step-num {
+      background: var(--primary-gradient);
+      color: #fff;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.78rem;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .warning-card {
+      background: rgba(251, 113, 133, 0.08);
+      border: 1px solid rgba(251, 113, 133, 0.28);
+      border-radius: 12px;
+      padding: 14px;
+      text-align: left;
+      font-size: 0.86rem;
+      color: #fecdd3;
+      margin-bottom: 24px;
+      line-height: 1.45;
+    }
+    .warning-card strong {
+      color: #fda4af;
+    }
+    .links {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      font-size: 0.88rem;
+    }
+    .links a {
+      color: var(--primary);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    .links a:hover {
+      color: #fff;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="badge">🚀 1-Click Web Installer</div>
+    <h1>TimeStation MultiBand 6 Beacon</h1>
+    <p class="subtitle">
+      Flash your <strong>ESP32-C3 SuperMini</strong> directly from your browser.<br>
+      Zero coding, zero terminal commands, and zero software installation.
+    </p>
+
+    <div class="flasher-box">
+      <esp-web-install-button manifest="manifest.json">
+        <button slot="activate" style="padding: 14px 32px; background: linear-gradient(135deg, #c084fc, #9333ea); color: #fff; border: none; border-radius: 12px; font-size: 1.05rem; font-weight: 700; cursor: pointer; box-shadow: 0 4px 20px rgba(168, 85, 247, 0.4);">
+          ⚡ Install TimeStation Beacon
+        </button>
+        <span slot="unsupported">
+          ⚠️ Your browser does not support WebSerial. Please open this page in <strong>Google Chrome</strong>, <strong>Microsoft Edge</strong>, or <strong>Brave</strong>.
+        </span>
+      </esp-web-install-button>
+
+      <div id="browserWarning" class="browser-warning">
+        ⚠️ WebSerial API is not supported in this browser. Please use <strong>Google Chrome</strong> or <strong>Microsoft Edge</strong> on desktop.
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div>
+          <strong>Plug in your ESP32-C3 SuperMini:</strong> Use a certified <strong>USB-C data cable</strong> (avoid charge-only cables).
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div>
+          <strong>Enter Bootloader Mode:</strong> Press and hold <strong>`BOOT`</strong>, tap <strong>`RST`</strong>, then release <strong>`BOOT`</strong>.
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div>
+          <strong>Click Install:</strong> Click the button above, select your ESP32 port, and wait for flashing to reach 100%.
+        </div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">4</div>
+        <div>
+          <strong>Configure Wi-Fi:</strong> Once flashed, ESP Web Tools allows configuring Wi-Fi directly, or connect to <code>TimeStation-Setup-XXXX</code> (192.168.4.1).
+        </div>
+      </div>
+    </div>
+
+    <div class="warning-card">
+      ⚠️ <strong>Hardware Rule:</strong> Always connect your antenna circuit to <strong>GPIO 1</strong>. Never ground or connect the circuit to <strong>GPIO 2</strong> during boot or flashing (it is an ESP32-C3 strapping pin).
+    </div>
+
+    <div class="links">
+      <a href="../QUICKSTART.md" target="_blank">⚡ 5-Minute Quick Start Guide</a>
+      <span>•</span>
+      <a href="../CASIO_GUIDE.md" target="_blank">⌚ Watch Setup Guide (Casio, Citizen, Seiko, etc.)</a>
+      <span>•</span>
+      <a href="https://github.com/robertlongbottom/MultiBand6-ESP32-AtomicBeacon" target="_blank">💻 GitHub Repository</a>
+    </div>
+  </div>
+
+  <script>
+    if (!("serial" in navigator)) {
+      document.getElementById("browserWarning").style.display = "block";
+    }
+  </script>
+</body>
+</html>

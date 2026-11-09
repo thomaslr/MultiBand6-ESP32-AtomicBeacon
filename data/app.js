@@ -18,12 +18,13 @@ let clientEpochBaseMs = Date.now();
 let transmitRemainSec = 0;
 let transmitRemainBaseMs = Date.now();
 let appConfig = null;
-let currentFirmwareVersion = '0.1.5';
+let currentFirmwareVersion = '0.1.6';
 let latestReleaseData = null;
+let logAutoRefreshInterval = null;
 
 // --- Tab Management ---
 function switchTab(tabName) {
-  const tabs = ['broadcast', 'network', 'ota'];
+  const tabs = ['broadcast', 'network', 'ota', 'logs'];
   tabs.forEach(t => {
     const btn = document.getElementById('tabBtn' + capitalize(t));
     const content = document.getElementById('tabContent' + capitalize(t));
@@ -32,6 +33,17 @@ function switchTab(tabName) {
   });
   if (tabName === 'network' || tabName === 'broadcast') fetchConfig();
   if (tabName === 'ota') fetchOtaStatus();
+  if (tabName === 'logs') {
+    fetchLogs();
+    if (!logAutoRefreshInterval) {
+      logAutoRefreshInterval = setInterval(fetchLogs, 3000);
+    }
+  } else {
+    if (logAutoRefreshInterval) {
+      clearInterval(logAutoRefreshInterval);
+      logAutoRefreshInterval = null;
+    }
+  }
 }
 
 async function fetchConfig() {
@@ -930,6 +942,61 @@ function showInfo(title, htmlContent) {
 function hideInfo() {
   document.getElementById('popoverBackdrop').style.display = 'none';
   document.getElementById('globalPopover').style.display = 'none';
+}
+
+// --- Diagnostics & Live Log Streaming ---
+async function fetchLogs() {
+  try {
+    const res = await fetch('/api/logs');
+    if (!res.ok) return;
+    const data = await res.json();
+
+    // Update Telemetry Metrics
+    if (data.free_heap !== undefined) {
+      document.getElementById('diagFreeHeap').textContent = (data.free_heap / 1024).toFixed(1) + ' KB';
+    }
+    if (data.min_free_heap !== undefined) {
+      document.getElementById('diagMinHeap').textContent = (data.min_free_heap / 1024).toFixed(1) + ' KB';
+    }
+    if (data.uptime_sec !== undefined) {
+      document.getElementById('diagUptime').textContent = formatDuration(data.uptime_sec);
+    }
+    if (appStatus && appStatus.wifi_rssi !== undefined) {
+      document.getElementById('diagRssi').textContent = appStatus.wifi_rssi + ' dBm';
+    }
+
+    // Update Terminal Console
+    const consoleElem = document.getElementById('logConsole');
+    if (consoleElem && data.logs) {
+      consoleElem.textContent = data.logs.join('\n') || '[Log buffer is currently empty]';
+      const autoScroll = document.getElementById('autoScrollLogs');
+      if (autoScroll && autoScroll.checked) {
+        consoleElem.scrollTop = consoleElem.scrollHeight;
+      }
+    }
+  } catch (err) {
+    console.warn('Failed to fetch diagnostics:', err);
+  }
+}
+
+async function clearLogs() {
+  try {
+    await fetch('/api/logs/clear', { method: 'POST' });
+    fetchLogs();
+  } catch (e) {
+    console.warn('Failed to clear logs:', e);
+  }
+}
+
+function copyLogs() {
+  const consoleElem = document.getElementById('logConsole');
+  if (consoleElem) {
+    navigator.clipboard.writeText(consoleElem.textContent).then(() => {
+      alert('Diagnostics logs copied to clipboard!');
+    }).catch(() => {
+      alert('Unable to copy logs to clipboard.');
+    });
+  }
 }
 
 // --- Initial Startup ---

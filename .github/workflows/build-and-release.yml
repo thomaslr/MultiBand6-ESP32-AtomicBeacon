@@ -66,13 +66,21 @@ jobs:
         working-directory: firmware-rust/beacon-firmware
         run: cargo build --release
 
-      - name: Convert ELF to Flashable Firmware Binary (.bin)
+      - name: Convert ELF to Flashable Firmware Binaries (.bin)
         if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
         run: |
+          # 1. Standalone application binary for OTA updates
           espflash save-image --chip esp32c3 \
             --partition-table firmware-rust/beacon-firmware/partitions.csv \
             firmware-rust/target/riscv32imc-esp-espidf/release/beacon-firmware \
             multiband6-beacon.bin
+          
+          # 2. Merged factory binary for initial USB flashing at address 0x0 (includes bootloader + Dual-OTA partitions)
+          espflash save-image --merge --skip-padding --chip esp32c3 \
+            --partition-table firmware-rust/beacon-firmware/partitions.csv \
+            firmware-rust/target/riscv32imc-esp-espidf/release/beacon-firmware \
+            multiband6-beacon-factory.bin
+
           BIN_SIZE=$(wc -c < multiband6-beacon.bin | tr -d ' ')
           MAX_SIZE=2031616
           PCT=$(( BIN_SIZE * 100 / MAX_SIZE ))
@@ -84,7 +92,7 @@ jobs:
             echo "::error::Firmware binary ($BIN_SIZE bytes) exceeds maximum OTA slot limit ($MAX_SIZE bytes)!"
             exit 1
           fi
-          ls -lh multiband6-beacon.bin
+          ls -lh multiband6-beacon.bin multiband6-beacon-factory.bin
 
       - name: Generate Version Metadata
         if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
@@ -98,6 +106,8 @@ jobs:
             "version": "$TAG_NAME",
             "url": "https://github.com/${{ github.repository }}/releases/latest/download/multiband6-beacon.bin",
             "sha256": "$(sha256sum multiband6-beacon.bin | awk '{print $1}')",
+            "factory_url": "https://github.com/${{ github.repository }}/releases/latest/download/multiband6-beacon-factory.bin",
+            "factory_sha256": "$(sha256sum multiband6-beacon-factory.bin | awk '{print $1}')",
             "built_at": "$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           }
           EOF
@@ -138,4 +148,5 @@ jobs:
           body_path: release_notes.md
           files: |
             multiband6-beacon.bin
+            multiband6-beacon-factory.bin
             version.json

@@ -1,0 +1,16 @@
+{
+  "name": "TimeStation MultiBand 6 ESP32 Beacon",
+  "version": "v0.1.6",
+  "new_install_prompt_erase": false,
+  "builds": [
+    {
+      "chipFamily": "ESP32-C3",
+      "parts": [
+        {
+          "path": "multiband6-beacon-factory.bin",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}

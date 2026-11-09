@@ -2,11 +2,13 @@
 
 An open-hardware, low-power near-field radio transmitter built on the **ESP32-C3-Mini** to simulate LF time signal broadcasts (**BPC, WWVB, MSF, DCF77, JJY40, JJY60**) for synchronizing radio-controlled ("atomic") clocks and wristwatches over a localized range (approx. 0.5 m to 1.0 m).
 
-Why?? - I have a collection of multiband6 casios but I live in Singapore were there is no signal from any of the time towers. This device solves that problem by broadcasting the signals locally from my a small device next to my bed, about 0.5m from my watches.
+Why?? - I have a collection of multiband6 casios but I live in Singapore were there is no signal from any of the time towers. This device solves that problem by broadcasting the signals locally from a small device next to my bed, about 0.5m from my watches. *(Note: While I use Casio watches as my primary reference because that's what I collect and am familiar with, the beacon broadcasts authentic international radio signals compatible with **every radio-controlled watch**—including **Citizen Eco-Drive**, **Seiko**, **Timex**, **Junghans**, and atomic clocks).*
 
 It's still under testing.
 
-
+> [!TIP]
+> 🚀 **Just want to get your watch syncing tonight?**  
+> Check out the **[5-Minute Quick Start Guide](QUICKSTART.md)** for 1-click in-browser web flashing — zero software installation or coding required! For watch brand setup notes, see the **[Watch Compatibility Guide](CASIO_GUIDE.md)**.
 
 ---
 
@@ -276,12 +278,125 @@ For a permanent, enclosure-friendly installation, a production-grade 2-layer car
 * **Instant Ordering:** Pre-generated Gerber archive (`MultiBand6_Beacon_Gerbers.zip`), BOM (`bom.csv`), and centroid placement (`positions.csv`) files are ready to drag-and-drop into [JLCPCB](https://jlcpcb.com/).
 * See the [**PCB Ordering & Assembly Guide**](pcb/README.md) for full instructions.
 
+### 3D Printable Multi-Mount Enclosure & Table Stand
+
+For a clean, safe bedside installation, full 3D printable models are provided in the [`enclosure/`](enclosure/) folder:
+* **Vertical Surface Mounting:** Features dual M3 screw mounting ears, cross-recessed cable-tie channels (for bedframes/poles), and a 3M Command / VHB tape well.
+* **Horizontal Nightstand / Desk Stand:** An attachable snap-on cradle with a **$45^\circ$ tilt angle** aiming the magnetic coil upward toward your watch, complete with anti-slip rubber foot recesses.
+* **No Supports Required:** All STLs print cleanly flat on standard beds. See [`enclosure/README.md`](enclosure/README.md) for STL downloads and OpenSCAD sources.
+
 ---
 
-## 3. Physical Antenna Alignment & Orientation
+## 3. Quick Start: First-Time Setup & Flashing (ESP32-C3 SuperMini)
+
+> [!TIP]
+> Prefer a streamlined, step-by-step guide? Follow the dedicated **[5-Minute Quick Start Guide](QUICKSTART.md)**.
+
+For new users setting up an **ESP32-C3 SuperMini** for the first time, you do **not** need to install Rust or compile code. Everything is pre-built and packaged for instant browser or USB flashing.
+
+### 📦 Where to Get the Firmware Binaries
+
+Every GitHub release provides two distinct binaries on the **[Releases Page](https://github.com/robertlongbottom/MultiBand6-ESP32-AtomicBeacon/releases)**:
+
+| Binary File | Flash Address | Purpose & Usage |
+| :--- | :---: | :--- |
+| **`multiband6-beacon-factory.bin`** *(~1.6 MB)* | **`0x0`** | **Initial Setup / First-Time Flashing:** Merged factory binary containing the ESP32-C3 bootloader, Dual-OTA partition table (`ota_0` and `ota_1`, 1984 KB each), and application code. Flashes blank chips in one shot. |
+| **`multiband6-beacon.bin`** *(~1.5 MB)* | OTA Partition | **Wi-Fi Updates (OTA):** Standalone application payload uploaded via the web interface (`http://timestation.local`) or downloaded during remote updates. |
+
+---
+
+### ⚠️ Pre-Flashing Hardware Checklist
+
+1. **Certified USB-C Data Cable:** Many USB-C cables are charge-only. The ESP32-C3 SuperMini uses its internal native USB-Serial/JTAG controller, which requires data lines ($D+$ and $D-$).
+2. **Antenna Pin Warning (GPIO 1 vs GPIO 2):**
+   * Keep the transmitter circuit connected to **GPIO 1** (`IO1`).
+   * **Do NOT ground or connect GPIO 2 during flashing:** GPIO 2 is an ESP32-C3 strapping pin. Pulling it LOW (e.g. through a transistor base resistor) blocks the ROM bootloader and prevents entering USB download mode.
+3. **Putting ESP32-C3 SuperMini into Download Boot Mode:**
+   If the flasher does not auto-detect the board:
+   * Press and hold the **`BOOT`** button (GPIO 9).
+   * Press and release the **`RST`** button (or plug in the USB cable while holding `BOOT`).
+   * Release the **`BOOT`** button. The chip is now in download mode.
+
+---
+
+### 🚀 Flashing the Board
+
+#### Option 1: 1-Click Online Web Installer (Easiest — Zero File Downloads)
+
+Compatible with **Google Chrome** and **Microsoft Edge**:
+
+1. Connect your ESP32-C3 SuperMini via USB (data cable).
+2. Put the board into download mode: Hold **`BOOT`** $\rightarrow$ tap **`RST`** $\rightarrow$ release **`BOOT`**.
+3. Open the **[TimeStation 1-Click Web Installer](https://robertlongbottom.github.io/MultiBand6-ESP32-AtomicBeacon/)**.
+4. Click **"⚡ Install TimeStation Beacon"**, select your serial port, and wait for flashing to reach 100%.
+5. The installer will even prompt you to configure your Wi-Fi directly in the browser!
+
+---
+
+#### Option 2: In-Browser Web Flasher (Espressif esptool-js)
+
+1. Connect your ESP32-C3 SuperMini via USB.
+2. Put the board into download mode (Hold `BOOT` $\rightarrow$ tap `RST` $\rightarrow$ release `BOOT`).
+3. Open the **[Espressif Web Flasher (esptool-js)](https://espressif.github.io/esptool-js/)** or **[Adafruit WebSerial ESPTool](https://adafruit.github.io/Adafruit_WebSerial_ESPTool/)**.
+4. Set Baud Rate to **`460800`** and click **Connect**. Choose your ESP32-C3 port.
+5. In the file upload section:
+   * **File:** Select `multiband6-beacon-factory.bin` downloaded from [Releases](https://github.com/robertlongbottom/MultiBand6-ESP32-AtomicBeacon/releases).
+   * **Flash Address:** **`0x0`** (or `0x0000`).
+6. Click **Program / Flash**.
+7. Once finished, press the **`RST`** button once to boot the beacon!
+
+---
+
+#### Option 3: Single-Command USB CLI (`esptool.py` or `espflash`)
+
+If you have Python or `espflash` installed, flash the merged factory image directly to address `0x0`:
+
+```bash
+# Using esptool.py (Python)
+esptool.py --chip esp32c3 write_flash 0x0 multiband6-beacon-factory.bin
+
+# Or using espflash (Rust CLI)
+espflash write-bin 0x0 multiband6-beacon-factory.bin
+```
+
+Press **`RST`** once when complete.
+
+---
+
+#### Option 4: Compiling & Flashing from Source (Rust Nightly)
+
+For developers working directly on the codebase:
+
+```bash
+cd firmware-rust/beacon-firmware
+cargo run --release
+```
+*(The repository's `.cargo/config.toml` automatically invokes `espflash flash --partition-table beacon-firmware/partitions.csv --monitor`, provisioning the Dual-OTA partition table, building the bootloader, flashing the app, and launching the serial monitor).*
+
+---
+
+### 📶 First-Time Wi-Fi Provisioning (SoftAP & Captive Portal)
+
+On first boot, the ESP32-C3 has no saved Wi-Fi credentials in NVS, so it automatically launches its configuration hotspot:
+
+1. **Connect to Hotspot:** On your smartphone or laptop, connect to the open Wi-Fi network:
+   $$\mathbf{TimeStation\text{-}Setup\text{-}XXXX}$$
+   *(where `XXXX` is the last 4 hex characters of your ESP32's MAC address).*
+2. **Open Setup Portal:** The captive portal will open automatically. If not, open your browser and navigate to:
+   **[http://192.168.4.1](http://192.168.4.1)**
+3. **Configure Wi-Fi & Station:**
+   * Scan and pick your home 2.4 GHz Wi-Fi network, enter the password.
+   * Choose your default atomic radio station (e.g. **WWVB**, **DCF77**, **MSF**, **BPC**, **JJY**) or select **Carousel Mode**.
+   * Click **Save & Connect**.
+4. **Access Web Dashboard:** The device will reboot and join your local network. Open:
+   **[http://timestation.local](http://timestation.local)** *(or check your router DHCP table for its IP address)*.
+
+---
+
+## 4. Physical Antenna Alignment & Orientation
 
 * The **16×18 3.5mH I-type inductor** (16 mm diameter × 18 mm height drum core) radiates a magnetic dipole field oriented along its **vertical cylindrical axis** (top and bottom flat faces).
-* Most atomic clocks and watches (like Casio MultiBand 6 G-Shocks) contain a **horizontal ferrite rod antenna** embedded inside the case (commonly at 12 o'clock or 9 o'clock).
+* Most atomic clocks and watches (such as Casio MultiBand 6, Citizen Eco-Drive, Seiko, or Timex) contain a **horizontal ferrite rod antenna** embedded inside the case (commonly at 12 o'clock or 9 o'clock).
 * **Optimal Placement:** Position the inductor so that the magnetic flux lines looping out of the inductor's ends pass directly through the clock's internal antenna bar (parallel orientation).
 * **Broadcast Range:** 
   * **C1815 NPN Booster (Option A):** Approx. **1.0 m to 1.2 m** (extended coverage for watches across a room or dresser).
@@ -289,7 +404,7 @@ For a permanent, enclosure-friendly installation, a production-grade 2-layer car
 
 ---
 
-## 4. Supported Stations & Broadcast Signals
+## 5. Supported Stations & Broadcast Signals
 
 | Station | Location | Frequency | Modulation Protocol | Frame Duration |
 | :--- | :--- | :---: | :--- | :---: |
@@ -303,7 +418,7 @@ For a permanent, enclosure-friendly installation, a production-grade 2-layer car
 
 ---
 
-## 5. Software Stack & 100% Rust Architecture
+## 6. Software Stack & 100% Rust Architecture
 
 This project is written in **100% pure Rust** targeting `riscv32imc-esp-espidf` using the official Espressif `esp-idf-svc` and `embedded-svc` framework. All legacy C++ and PlatformIO code has been eliminated.
 
@@ -318,7 +433,7 @@ This project is written in **100% pure Rust** targeting `riscv32imc-esp-espidf` 
 
 ---
 
-## 6. Flash Partitioning & Mandatory Dual-OTA Updates
+## 7. Flash Partitioning & Mandatory Dual-OTA Updates
 
 > [!IMPORTANT]
 > **Dual-OTA Partitioning is strictly mandatory.** The partition table must NEVER revert to a single-partition or factory-only layout.
@@ -343,7 +458,7 @@ ota_1,    app,  ota_1,   0x210000, 0x1f0000,
 
 ---
 
-## 7. Wi-Fi Resilience, Power & SoftAP Provisioning
+## 8. Wi-Fi Resilience, Power & SoftAP Provisioning
 
 Learned from the `plant-esp32` architecture:
 
@@ -364,13 +479,16 @@ Modern routers and mesh nodes (e.g. TP-Link Deco, ASUS AiMesh) frequently reject
 
 ---
 
-## 8. Web Dashboard & Dedicated Network Settings
+## 9. Web Dashboard & Operational Features
 
 The ESP32-C3 hosts an embedded single-page responsive web dashboard (`http://timestation.local`):
 
 ### 1. Broadcast Control Tab
 * **Single Station Mode:** Continuous broadcast on BPC, WWVB, MSF, DCF77, JJY40, or JJY60.
-* **Carousel Mode ("World Tour"):** Rotates through selected stations (e.g. BPC $\rightarrow$ WWVB $\rightarrow$ JJY60) with clean `:00` minute-boundary carrier handoffs.
+* **Carousel Mode ("World Tour"):** Rotates through selected stations (e.g. BPC $\rightarrow$ WWVB $\rightarrow$ JJY60):
+  * Configurable duration per station (e.g. 15 minutes per station $\times$ 3 stations = 45-minute nightly window).
+  * **Clean Minute Boundary Handoff:** The ESP32-C3 hardware LEDC timer retunes carrier frequency dynamically on the fly at the exact `:00` second mark, ensuring no watch receiver encounters truncated minute frames.
+  * Live dashboard displays active carousel stage and real-time countdown timers.
 * **Live Clocks:** Displays live synchronized UTC atomic time and local station time.
 * **Daily Schedule:** Configurable start time (e.g. `02:00 AM`) and duration.
 
@@ -382,44 +500,17 @@ The ESP32-C3 hosts an embedded single-page responsive web dashboard (`http://tim
 * **Radio Tuning:** Toggle modem-sleep, select max TX power (78 / 68 / 60 / 44), and toggle HT20 mode.
 * **Maintenance:** One-click "Reset Wi-Fi (Setup Mode)" and "Reboot ESP32" buttons.
 
-### 3. Firmware & OTA Tab
+### 3. Firmware & Dual-OTA Tab
 * Real-time partition status (running slot, target slot, package version, rollback safety).
 * Remote update trigger from URL (GitHub Releases).
-* Direct browser file upload with live progress bar.
+* Direct browser file upload of `multiband6-beacon.bin` with live progress bar.
 
----
+### 4. Diagnostics & Live Log Console Tab
+* **Live System Log Terminal:** Monospaced real-time scrolling console showing NTP synchronizations, carrier phase tuning, and Wi-Fi health without requiring a USB serial cable.
+* **Hardware Telemetry:** Live free heap memory, minimum free heap watermark, Wi-Fi RSSI signal meter, and system uptime.
+* **Console Controls:** Auto-scroll toggle, one-click clipboard copy, and buffer clear.
 
-## 9. Building & Continuous Integration (Docker & GitHub Actions)
-
-### Containerized GitHub Actions CI/CD
-Like the `plant-esp32` project, release builds are completely automated using containerized GitHub Actions:
-* **CI Image Dockerfile**: Located at `.github/ci/Dockerfile`, pre-packages Ubuntu 24.04 with pinned `nightly-2026-04-01`, `rust-src`, `ldproxy`, and `espflash`.
-* **Build Workflow**: `.github/workflows/build-and-release.yml` compiles release binaries on tag pushes (`v*`) or manual dispatch, verifies binary size against the 1984 KB OTA limit, generates `version.json`, and attaches release assets.
-
-### Local Development Commands
-
-```bash
-# 1. Run core protocol unit tests on host machine (macOS/Linux)
-cargo test --package beacon-core --target aarch64-apple-darwin
-
-# 2. Build release firmware binary for ESP32-C3
-cd firmware-rust/beacon-firmware
-cargo build --release
-
-# 3. Flash to ESP32-C3 over USB
-espflash flash --monitor target/riscv32imc-esp-espidf/release/beacon-firmware
-
-# 4. Generate standalone flashable binary (.bin)
-espflash save-image --chip esp32c3 \
-  --partition-table partitions.csv \
-  ../target/riscv32imc-esp-espidf/release/beacon-firmware \
-  multiband6-beacon.bin
-```
-  * Configurable duration per station (e.g. 15 minutes per station $\times$ 3 stations = 45-minute nightly window).
-  * **Clean Minute Boundary Handoff:** The ESP32-C3 hardware LEDC timer retunes carrier frequency dynamically on the fly at the exact `:00` second mark, ensuring no watch receiver encounters truncated minute frames.
-  * Live dashboard displays active carousel stage and real-time countdown timers.
-
-### 2. Interactive Info Popovers (`ℹ️`)
+### 5. Interactive Info Popovers (`ℹ️`)
 Every setting and hardware parameter includes an interactive `ℹ` info icon powered by a responsive, touch-friendly popover engine:
 * **Desktop:** Smooth hover activation (`mouseenter` / `mouseleave`).
 * **Mobile & Touchscreens:** Tap to open and pin the card; tap outside, tap the `×` button, or press `Esc` to dismiss.
@@ -431,7 +522,7 @@ Every setting and hardware parameter includes an interactive `ℹ` info icon pow
   * **Antenna Pin (GPIO 1):** Explains the LEDC PWM carrier, C1815 driver, and tuned LC tank.
   * **NTP Time Server:** Explains Stratum-1/Stratum-2 atomic clock routing.
 
-### 3. Timezone Offset: Mechanics & World Time Limits
+### 6. Timezone Offset: Mechanics & World Time Limits
 
 The web interface provides a manual **Custom Time Offset** ($\pm 12$ hours) with a dynamic warning banner:
 
@@ -465,11 +556,11 @@ If you use World Time mode on your watch:
 * **Offset = 0:** Displays a green neutral banner: `✓ Native Time (0h Offset): Broadcasts authentic station time. Recommended for MultiBand 6 watches to maintain accurate World Time.`
 * **Offset $\ne$ 0:** Displays a prominent amber warning banner: `⚠️ Timezone Shift (±Nh): Adjusts watch display, but shifts its internal UTC reference. All World Time cities on MultiBand 6 watches will also be shifted by ±N hours!`
 
-### 4. Broadcast Scheduling & Manual Test Mode
+### 7. Broadcast Scheduling & Manual Test Mode
 * **Daily Scheduled Window:** Configurable start time (default `02:00 AM`) and duration. During idle periods, the ESP32 remains in low-power 802.11 Modem-Sleep standby (~15–20 mA) or optional deep sleep.
 * **On-Demand Test Broadcast:** A "Broadcast Now" button initiates an immediate test transmission with a live stage countdown.
 
-### 5. Network Credentials & NTP Discipline
+### 8. Network Credentials & NTP Discipline
 * Wi-Fi SSID and Password can be reconfigured from the dashboard and saved directly to ESP32 non-volatile flash memory (NVS Preferences).
 * **Configurable Stratum-1 NTP Servers:** Select from `pool.ntp.org`, `time.google.com`, `time.cloudflare.com`, or custom servers.
 * **Persistent Background SNTP Daemon:** The `SntpManager` runs continuously in lwIP, automatically re-synchronizing the RTC every 1 hour to prevent drift from the ESP32's internal RC oscillator (which can drift 2–8 seconds/day without discipline).
@@ -479,15 +570,52 @@ If you use World Time mode on your watch:
 
 ---
 
-## 8. Credits & Acknowledgments
+## 10. Building from Source & CI/CD (Docker & GitHub Actions)
 
-* **Time Signal Protocols & Algorithms:** The core protocol encoding algorithms (`BPC`, `WWVB`, `MSF`, `DCF77`, `JJY`) and calendar routines are adapted from the open-source [timestation](https://github.com/kangtastic/timestation) project by **James Seo** (`james@equiv.tech`), licensed under the **MIT License**.
-* **Date Algorithms:** Howard Hinnant's public-domain Gregorian calendar algorithms.
-* **Hardware & Firmware Design:** Tailored for the **ESP32-C3-Mini** microcontroller using hardware LEDC PWM carrier generation and low-power deep sleep scheduling.
+### Containerized GitHub Actions CI/CD
+Like the `plant-esp32` project, release builds are completely automated using containerized GitHub Actions:
+* **CI Image Dockerfile**: Located at `.github/ci/Dockerfile`, pre-packages Ubuntu 24.04 with pinned `nightly-2026-04-01`, `rust-src`, `ldproxy`, and `espflash`.
+* **Build Workflow**: `.github/workflows/build-and-release.yml` compiles the release binary once, packages both the merged factory image (`multiband6-beacon-factory.bin` for 0x0 USB flashing) and the app payload (`multiband6-beacon.bin` for OTA), verifies binary size against the 1984 KB OTA limit, generates `version.json`, and attaches release assets.
+
+### Local Development Commands
+
+```bash
+# 1. Run core protocol unit tests on host machine (macOS/Linux)
+cargo test --package beacon-core --target aarch64-apple-darwin
+
+# 2. Build release firmware binary for ESP32-C3
+cd firmware-rust/beacon-firmware
+cargo build --release
+
+# 3. Flash to ESP32-C3 over USB (automatically provisions Dual-OTA table & launches monitor)
+cargo run --release
+# or directly:
+espflash flash --partition-table partitions.csv --monitor ../target/riscv32imc-esp-espidf/release/beacon-firmware
+
+# 4. Generate standalone OTA binary (.bin)
+espflash save-image --chip esp32c3 \
+  --partition-table partitions.csv \
+  ../target/riscv32imc-esp-espidf/release/beacon-firmware \
+  multiband6-beacon.bin
+
+# 5. Generate merged factory binary for address 0x0 (.bin)
+espflash save-image --merge --chip esp32c3 \
+  --partition-table partitions.csv \
+  ../target/riscv32imc-esp-espidf/release/beacon-firmware \
+  multiband6-beacon-factory.bin
+```
 
 ---
 
-## 9. License
+## 11. Credits & Acknowledgments
+
+* **Time Signal Protocols & Algorithms:** The core protocol encoding algorithms (`BPC`, `WWVB`, `MSF`, `DCF77`, `JJY`) and calendar routines are adapted from the open-source [timestation](https://github.com/kangtastic/timestation) project by **James Seo** (`james@equiv.tech`), licensed under the **MIT License**.
+* **Date Algorithms:** Howard Hinnant's public-domain Gregorian calendar algorithms.
+* **Hardware & Firmware Design:** Tailored for the **ESP32-C3 SuperMini** microcontroller using hardware LEDC PWM carrier generation and low-power deep sleep scheduling.
+
+---
+
+## 12. License
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 

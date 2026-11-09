@@ -38,6 +38,7 @@ fn main() -> anyhow::Result<()> {
     info!("  TimeStation ESP32-C3 MultiBand 6 Simulator Booting");
     info!("  Dual-OTA Partition Table & Rollback Protected");
     info!("==================================================");
+    web::log_diagnostic("ESP32-C3 MultiBand 6 Simulator booting (Dual-OTA protected)");
 
     // 1. Confirm boot health and cancel bootloader rollback
     mark_running_app_valid();
@@ -91,6 +92,7 @@ fn main() -> anyhow::Result<()> {
     match wifi_state {
         WifiState::StationConnected { ip_address, wifi_handle } => {
             info!("[Main] Wi-Fi connected! Station IP: {}", ip_address);
+            web::log_diagnostic(&format!("Wi-Fi connected. Station IP: {}", ip_address));
 
             // Start mDNS Responder (timestation.local)
             let _mdns = match EspMdns::take() {
@@ -217,6 +219,7 @@ fn main() -> anyhow::Result<()> {
                     let tx_dur = carrier.state.transmit_duration_sec.load(Ordering::Relaxed);
                     if tx_dur > 0 && (now_sec.saturating_sub(tx_start)) >= tx_dur {
                         info!("[Main] Scheduled/test broadcast window complete.");
+                        web::log_diagnostic("Broadcast window completed. Entering standby.");
                         carrier.stop(config.wifi.modem_sleep);
                     }
                 }
@@ -301,9 +304,11 @@ fn main() -> anyhow::Result<()> {
                     // Button pressed edge
                     if is_tx {
                         info!("[Button] Sync button pressed: Stopping transmission.");
+                        web::log_diagnostic("Bedside sync button pressed: Stopping broadcast.");
                         carrier.stop(config.wifi.modem_sleep);
                     } else {
                         info!("[Button] Sync button pressed: Starting transmission.");
+                        web::log_diagnostic("Bedside sync button pressed: Starting broadcast.");
                         if let Some(ref mgr) = sntp {
                             if !mgr.is_synced() {
                                 info!("[Button] RTC not yet synchronized; waiting up to 3s for NTP reference...");
