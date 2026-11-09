@@ -5,6 +5,11 @@ All notable changes to the MultiBand 6 ESP32 Atomic Beacon project will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.7] - 2026-11-09
+
+### Fixed
+- **Dashboard UI Syntax Error**: Removed a stray unclosed code block in `data/app.js` that caused browser parsing to fail (`SyntaxError: Unexpected token '}'`), resolving unresponsive navigation tabs and uninitialized clock displays.
+
 ## [0.1.6] - 2026-11-09
 
 ### Added

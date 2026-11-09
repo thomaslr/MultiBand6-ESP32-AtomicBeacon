@@ -18,7 +18,7 @@ let clientEpochBaseMs = Date.now();
 let transmitRemainSec = 0;
 let transmitRemainBaseMs = Date.now();
 let appConfig = null;
-let currentFirmwareVersion = '0.1.6';
+let currentFirmwareVersion = '0.1.7';
 let latestReleaseData = null;
 let logAutoRefreshInterval = null;
 
@@ -778,52 +778,6 @@ async function showOtaReportBeforeApply() {
     const el = document.getElementById('otaModalNotes');
     if (el) el.innerHTML = `<p>Release ${targetVer} is ready to flash directly from GitHub Releases. <a href="https://github.com/thomaslr/MultiBand6-ESP32-AtomicBeacon/releases" target="_blank" rel="noopener noreferrer">View changelog on GitHub</a>.</p>`;
   }
-}
-
-  const rel = latestReleaseData;
-  const currentVer = currentFirmwareVersion.startsWith('v') ? currentFirmwareVersion : ('v' + currentFirmwareVersion);
-  const newVer = rel.tag_name || 'latest';
-  const isNewer = isNewerVersion(newVer, currentVer);
-  const notesHtml = formatMarkdown(rel.body);
-
-  const title = isNewer
-    ? `🚀 New Firmware Update Available: ${newVer}`
-    : `📦 Firmware Release Details: ${newVer}`;
-
-  const html = `
-    <div style="margin-bottom: 14px; padding: 12px; background: rgba(0, 0, 0, 0.35); border-radius: 10px; border: 1px solid var(--border);">
-      <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
-        <span style="color: var(--text-muted);">Current Installed Version:</span>
-        <strong>${currentVer}</strong>
-      </div>
-      <div style="display: flex; justify-content: space-between; font-size: 13px;">
-        <span style="color: var(--text-muted);">Target Release Version:</span>
-        <strong style="color: ${isNewer ? '#fef08a' : '#10b981'}; font-weight: 700;">${newVer} ${isNewer ? '(Newer Version)' : '(Currently Installed)'}</strong>
-      </div>
-    </div>
-
-    <div style="margin-bottom: 14px;">
-      <div style="font-weight: 700; color: var(--accent); margin-bottom: 8px; font-size: 13px;">
-        📋 What's Included in This Release:
-      </div>
-      <div style="max-height: 220px; overflow-y: auto; padding: 10px 14px; background: rgba(0, 0, 0, 0.2); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);">
-        ${notesHtml}
-      </div>
-    </div>
-
-    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.45;">
-      🛡️ <strong>Dual-OTA Rollback Protected:</strong> The firmware will stream directly into your standby partition over TLS. The ESP32 bootloader automatically rolls back to your working slot if verification fails.
-    </div>
-
-    <div style="display: flex; gap: 10px; justify-content: flex-end;">
-      <button type="button" class="btn btn-secondary" onclick="hideInfo()">Cancel</button>
-      <button type="button" class="btn btn-primary" onclick="confirmAndApplyOta()">
-        ⬇ Flash &amp; Apply ${newVer}
-      </button>
-    </div>
-  `;
-
-  showInfo(title, html);
 }
 
 function confirmAndApplyOta() {
