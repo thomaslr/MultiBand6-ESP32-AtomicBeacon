@@ -18,7 +18,7 @@ let clientEpochBaseMs = Date.now();
 let transmitRemainSec = 0;
 let transmitRemainBaseMs = Date.now();
 let appConfig = null;
-let currentFirmwareVersion = '0.1.8';
+let currentFirmwareVersion = '0.1.9';
 let latestReleaseData = null;
 let logAutoRefreshInterval = null;
 

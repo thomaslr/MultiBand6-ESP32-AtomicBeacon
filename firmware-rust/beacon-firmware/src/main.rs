@@ -7,7 +7,6 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use esp_idf_svc::eventloop::EspSystemEventLoop;
-use esp_idf_svc::hal::gpio::{PinDriver, Pull};
 use esp_idf_svc::hal::peripherals::Peripherals;
 use esp_idf_svc::mdns::EspMdns;
 use esp_idf_svc::nvs::EspDefaultNvsPartition;
@@ -51,14 +50,21 @@ fn main() -> anyhow::Result<()> {
     let status_led = StatusLed::init();
     status_led.update(false, 0); // Completely dark in standby
 
-    // Bedside sync button (SW1 / J3: GPIO 3, Active LOW)
-    let _sync_button = PinDriver::input(peripherals.pins.gpio3, Pull::Up)?;
+    // Bedside sync button (SW1 / J3: GPIO 3, Active LOW) & Onboard BOOT button (GPIO 9, Active LOW)
+    // Configure both pins with internal pull-up and digital input enabled.
+    // Resetting and configuring via esp-idf gpio_config ensures RTCIO functions on GPIO 3
+    // are properly disabled (rtc_gpio_deinit) so digital input levels are reliably sensed.
     unsafe {
-        // Configure internal pullup for GPIO 3
-        esp_idf_svc::sys::gpio_set_pull_mode(
-            pins::PIN_SYNC_BUTTON,
-            esp_idf_svc::sys::gpio_pull_mode_t_GPIO_PULLUP_ONLY,
-        );
+        esp_idf_svc::sys::gpio_reset_pin(pins::PIN_SYNC_BUTTON);
+        esp_idf_svc::sys::gpio_reset_pin(pins::PIN_BOOT_BUTTON);
+        let io_conf = esp_idf_svc::sys::gpio_config_t {
+            pin_bit_mask: (1u64 << pins::PIN_SYNC_BUTTON) | (1u64 << pins::PIN_BOOT_BUTTON),
+            mode: esp_idf_svc::sys::gpio_mode_t_GPIO_MODE_INPUT,
+            pull_up_en: esp_idf_svc::sys::gpio_pullup_t_GPIO_PULLUP_ENABLE,
+            pull_down_en: esp_idf_svc::sys::gpio_pulldown_t_GPIO_PULLDOWN_DISABLE,
+            intr_type: esp_idf_svc::sys::gpio_int_type_t_GPIO_INTR_DISABLE,
+        };
+        esp_idf_svc::sys::gpio_config(&io_conf);
     }
 
     // 3. Storage initialization
@@ -152,7 +158,10 @@ fn main() -> anyhow::Result<()> {
             core::mem::forget(_server);
 
             // Station operational loop
-            let mut last_button_state = true; // High when not pressed
+            let mut btn_stable_pressed = false;
+            let mut btn_consecutive_low: u8 = 0;
+            let mut btn_consecutive_high: u8 = 0;
+            let mut last_button_action_ms = 0u32;
             let mut last_schedule_day = -1i32;
             let mut last_presync_day = -1i32;
             let mut last_midnight_sync_day = -1i32;
@@ -298,28 +307,51 @@ fn main() -> anyhow::Result<()> {
                     }
                 }
 
-                // Manual Bedside Sync Button (SW1 / J3: GPIO 3, Active LOW)
-                let btn_pin_low = unsafe { esp_idf_svc::sys::gpio_get_level(pins::PIN_SYNC_BUTTON) == 0 };
-                if btn_pin_low && last_button_state {
-                    // Button pressed edge
-                    if is_tx {
-                        info!("[Button] Sync button pressed: Stopping transmission.");
-                        web::log_diagnostic("Bedside sync button pressed: Stopping broadcast.");
-                        carrier.stop(config.wifi.modem_sleep);
-                    } else {
-                        info!("[Button] Sync button pressed: Starting transmission.");
-                        web::log_diagnostic("Bedside sync button pressed: Starting broadcast.");
-                        if let Some(ref mgr) = sntp {
-                            if !mgr.is_synced() {
-                                info!("[Button] RTC not yet synchronized; waiting up to 3s for NTP reference...");
-                                let _ = mgr.sync(Duration::from_secs(3));
-                            }
-                        }
-                        let cur_cfg = app_state.lock().map(|a| a.config.clone()).unwrap_or_else(|_| config.clone());
-                        carrier.start(&cur_cfg, None);
-                    }
+                // Manual Bedside Sync Button (SW1 / J3 on GPIO 3 or Onboard BOOT on GPIO 9, Active LOW)
+                // Filter mechanical contact bounce: require 3 consecutive samples (~60ms) of stable level
+                let raw_btn_low = unsafe {
+                    esp_idf_svc::sys::gpio_get_level(pins::PIN_SYNC_BUTTON) == 0
+                        || esp_idf_svc::sys::gpio_get_level(pins::PIN_BOOT_BUTTON) == 0
+                };
+
+                if raw_btn_low {
+                    btn_consecutive_low = btn_consecutive_low.saturating_add(1);
+                    btn_consecutive_high = 0;
+                } else {
+                    btn_consecutive_high = btn_consecutive_high.saturating_add(1);
+                    btn_consecutive_low = 0;
                 }
-                last_button_state = !btn_pin_low;
+
+                // Rising edge of debounced button press (~60ms steady LOW)
+                if btn_consecutive_low >= 3 && !btn_stable_pressed {
+                    btn_stable_pressed = true;
+
+                    // Enforce 500ms cooldown between successive button actions to prevent bounce flutter
+                    if now_ms.saturating_sub(last_button_action_ms) >= 500 {
+                        last_button_action_ms = now_ms;
+                        if is_tx {
+                            info!("[Button] Physical sync button pressed: Stopping transmission.");
+                            web::log_diagnostic("Physical sync button pressed: Stopping broadcast.");
+                            carrier.stop(config.wifi.modem_sleep);
+                        } else {
+                            info!("[Button] Physical sync button pressed: Starting transmission for 15 mins.");
+                            web::log_diagnostic("Physical sync button pressed: Starting 15m broadcast.");
+                            if let Some(ref mgr) = sntp {
+                                if !mgr.is_synced() {
+                                    info!("[Button] RTC not yet synchronized; waiting up to 3s for NTP reference...");
+                                    let _ = mgr.sync(Duration::from_secs(3));
+                                }
+                            }
+                            // Physical button always broadcasts as the current radio station for 15 minutes
+                            let mut cur_cfg = app_state.lock().map(|a| a.config.clone()).unwrap_or_else(|_| config.clone());
+                            cur_cfg.carousel_enabled = false;
+                            carrier.start(&cur_cfg, Some(15 * 60));
+                        }
+                    }
+                } else if btn_consecutive_high >= 3 && btn_stable_pressed {
+                    // Debounced release (~60ms steady HIGH)
+                    btn_stable_pressed = false;
+                }
 
                 std::thread::sleep(Duration::from_millis(20));
             }
@@ -335,16 +367,69 @@ fn main() -> anyhow::Result<()> {
 
             // 5-minute self-healing recovery timer if saved credentials exist
             let start_time = std::time::Instant::now();
+            let mut btn_stable_pressed = false;
+            let mut btn_consecutive_low: u8 = 0;
+            let mut btn_consecutive_high: u8 = 0;
+            let mut last_button_action_ms = 0u32;
+
             loop {
                 let now_ms = unsafe { (esp_idf_svc::sys::esp_timer_get_time() / 1000) as u32 };
-                status_led.update(false, now_ms);
+                let is_tx = carrier.state.is_transmitting.load(Ordering::Relaxed);
+                let now_sec = unsafe { esp_idf_svc::sys::time(core::ptr::null_mut()) as u32 };
+                let is_synced = now_sec > 1_700_000_000;
+
+                status_led.update(is_tx, now_ms);
+
+                // Check transmission duration timeout
+                if is_tx {
+                    let tx_start = carrier.state.transmit_start_sec.load(Ordering::Relaxed);
+                    let tx_dur = carrier.state.transmit_duration_sec.load(Ordering::Relaxed);
+                    if tx_dur > 0 && (now_sec.saturating_sub(tx_start)) >= tx_dur {
+                        info!("[Main] Broadcast window complete.");
+                        carrier.stop(false);
+                    }
+                }
+
+                // Check physical button in SoftAP mode
+                let raw_btn_low = unsafe {
+                    esp_idf_svc::sys::gpio_get_level(pins::PIN_SYNC_BUTTON) == 0
+                        || esp_idf_svc::sys::gpio_get_level(pins::PIN_BOOT_BUTTON) == 0
+                };
+
+                if raw_btn_low {
+                    btn_consecutive_low = btn_consecutive_low.saturating_add(1);
+                    btn_consecutive_high = 0;
+                } else {
+                    btn_consecutive_high = btn_consecutive_high.saturating_add(1);
+                    btn_consecutive_low = 0;
+                }
+
+                if btn_consecutive_low >= 3 && !btn_stable_pressed {
+                    btn_stable_pressed = true;
+                    if now_ms.saturating_sub(last_button_action_ms) >= 500 {
+                        last_button_action_ms = now_ms;
+                        if is_tx {
+                            info!("[Button] Sync button pressed: Stopping transmission.");
+                            carrier.stop(false);
+                        } else if is_synced {
+                            info!("[Button] Sync button pressed in SoftAP: Starting transmission for 15 mins.");
+                            let mut cur_cfg = config.clone();
+                            cur_cfg.carousel_enabled = false;
+                            carrier.start(&cur_cfg, Some(15 * 60));
+                        } else {
+                            warn!("[Button] Sync button pressed, but RTC clock is not yet synchronized (Wi-Fi setup required).");
+                        }
+                    }
+                } else if btn_consecutive_high >= 3 && btn_stable_pressed {
+                    btn_stable_pressed = false;
+                }
 
                 if has_saved_wifi && start_time.elapsed() >= Duration::from_secs(300) {
                     warn!("[Main] 5 minutes elapsed in SoftAP with saved credentials. Rebooting to reconnect...");
                     unsafe { esp_idf_svc::sys::esp_restart(); }
                 }
 
-                std::thread::sleep(Duration::from_millis(50));
+                std::thread::sleep(Duration::from_millis(20));
             }
         }
     }

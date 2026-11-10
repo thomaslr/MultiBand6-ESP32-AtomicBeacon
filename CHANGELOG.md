@@ -5,6 +5,12 @@ All notable changes to the MultiBand 6 ESP32 Atomic Beacon project will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.9] - 2026-11-10
+
+### Fixed
+- **Physical Sync Button Debounce & RTCIO Configuration**: Fixed bedside tactile pushbutton ($SW_1$ on GPIO 3) being ignored due to contact bounce chatter causing an instant start/abort cycle in under $40\text{ ms}$. Implemented a 3-sample ($60\text{ ms}$) digital integrator with a $500\text{ ms}$ action cooldown and explicit `gpio_config` initialization to cleanly disconnect RTC/analog functions from GPIO 3.
+- **15-Minute Current Station Broadcast on Button Press**: Pressing the physical sync button now explicitly overrides carousel settings to broadcast the currently selected radio station for a dedicated 15-minute window with live web countdown, and cleanly stops transmission if pressed again while broadcasting. Added dual-mapping for GPIO 9 (ESP32-C3 onboard BOOT button) as a bench-testing convenience.
+
 ## [0.1.8] - 2026-11-10
 
 ### Changed
