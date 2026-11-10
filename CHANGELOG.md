@@ -5,6 +5,11 @@ All notable changes to the MultiBand 6 ESP32 Atomic Beacon project will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.11] - 2026-11-10
+
+### Fixed
+- **Dashboard UI Syntax Error in `data/app.js`**: Removed duplicate `activeSt` and `st` variable declarations inside `updateStatusDisplay` that caused browser runtime parsing failure (`SyntaxError: Identifier 'activeSt' has already been declared`), restoring unresponsive navigation tabs, clock updates, and live dashboard metrics.
+
 ## [0.1.10] - 2026-11-10
 
 ### Added

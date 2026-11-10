@@ -18,7 +18,7 @@ let clientEpochBaseMs = Date.now();
 let transmitRemainSec = 0;
 let transmitRemainBaseMs = Date.now();
 let appConfig = null;
-let currentFirmwareVersion = '0.1.10';
+let currentFirmwareVersion = '0.1.11';
 let latestReleaseData = null;
 let logAutoRefreshInterval = null;
 let statusPollTimer = null;
@@ -241,8 +241,6 @@ function updateStatusDisplay(data) {
     diagGpio9.style.color = data.gpio9_level === 0 ? 'var(--accent)' : 'inherit';
   }
 
-  const activeSt = data.active_station !== undefined ? data.active_station : (data.activeStation || 0);
-  const st = STATIONS[activeSt] || STATIONS[0];
   const carEn = data.carousel_enabled !== undefined ? data.carousel_enabled : (data.carouselEnabled || false);
   document.getElementById('activeStation').innerText = carEn
     ? `🔄 ${st.name}`

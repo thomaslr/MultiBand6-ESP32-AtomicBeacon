@@ -1,6 +1,6 @@
 {
   "name": "TimeStation MultiBand 6 ESP32 Beacon",
-  "version": "v0.1.10",
+  "version": "v0.1.11",
   "new_install_prompt_erase": false,
   "builds": [
     {
