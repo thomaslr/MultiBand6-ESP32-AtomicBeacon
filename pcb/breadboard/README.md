@@ -19,10 +19,13 @@ This directory contains the visual layout and wiring documentation for building 
 * **LC Tank ($L_1, C_1$):** 16×18 mm 3.5 mH drum core inductor in parallel with 1.5 nF capacitor across Rows 12 and 16.
 * **Base Resistor ($R_1$):** $1\text{ k}\Omega$ spanning directly from Row 7 (GPIO 1) to Row 11 (C1815 Base).
 * **Damping Resistor ($R_2$):** $220\,\Omega$ connected from Row 16 (LC Tank high side) to the (+) 5V power rail.
+* **Bedside Manual Sync Button ($SW_1$):** Momentary tactile pushbutton connected from Row 5 (GPIO 3 / Pin F5) to the (-) Ground Rail.
+* **Sync Pull-Up Resistor ($R_6$):** $10\text{ k}\Omega$ connected from Row 5 (GPIO 3) to Row 3 (3V3 rail / Pin F3).
+* **I2C Expansion ($J_2$, Optional):** $0.96"$ OLED display connected to Row 2 (GND), Row 3 (3V3), Row A1 (GPIO 5 / SCL), and Row F4 (GPIO 4 / SDA) with $4.7\text{ k}\Omega$ pull-ups ($R_4, R_5$) to 3.3V.
 
 ---
 
-## 📋 Row Mapping Table (C1815 NPN)
+## 📋 Row Mapping Table (C1815 NPN + Sync Button)
 
 ```
   (+) POWER RAIL  [+5V from ESP32 Pin F1]  ─── (Red Line)
@@ -32,10 +35,11 @@ This directory contains the visual layout and wiring documentation for building 
   ────────────────────────────────────────────────────────────────────────
    01:    [ . . . . . ] ── [ESP32-C3] ── [ 5V ]  [ . . . . ] ── Wire to (+) 5V Rail
    02:    [ . . . . . ] ── [SuperMini]── [ GND ] [ . . . . ] ── Wire to (-) GND Rail
-   03:    [ . . . . . ] ── [ Rows   ] ── [ 3V3 ] [ . . . . ]
-   04:    [ . . . . . ] ── [ 1 to 8 ] ── [ IO4 ] [ . . . . ]
-   05:    [ . . . . . ] ── [ across ] ── [ IO3 ] [ . . . . ]
-   06:    [ . . . . . ] ── [ ravine ] ── [ IO2 ] [ . . . . ]
+   03:    [ . . . . . ] ── [ Rows   ] ── [ 3V3 ] [ . . . . ] ── [ 10k R6 Pull-Up ]
+   04:    [ . . . . . ] ── [ 1 to 8 ] ── [ IO4 ] [ . . . . ]          │
+   05:    [ . . . . . ] ── [ across ] ── [ IO3 ] [ . . . . ] ◄────────┘ (GPIO 3 Sync)
+          [ SW1 Push  ] ── [ ravine ] ── [ Button]           ── Momentary Pushbutton to (-) GND
+   06:    [ . . . . . ] ── [        ] ── [ IO2 ] [ . . . . ]
    07:    [ . . . . . ] ── [        ] ── [ IO1 ] [ . . . . ] ── [ 1k R_base ]
    08:    [ . . . . . ] ── [        ] ── [ IO0 ] [ . . . . ]          │
                                                                       │

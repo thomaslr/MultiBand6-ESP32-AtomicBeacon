@@ -2,7 +2,7 @@
 	(version 20260206)
 	(generator "eeschema")
 	(generator_version "10.0")
-	(uuid "cfbf4a94-9581-4214-9cfa-621763d738a4")
+	(uuid "cca7b6a5-6278-40ad-9e8d-26c51ad1f051")
 	(paper "A4")
 	(title_block
 		(title "MultiBand 6 Atomic Clock Beacon - ESP32-C3 Carrier")
