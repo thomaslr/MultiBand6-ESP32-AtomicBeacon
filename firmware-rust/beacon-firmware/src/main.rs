@@ -65,6 +65,12 @@ fn main() -> anyhow::Result<()> {
             intr_type: esp_idf_svc::sys::gpio_int_type_t_GPIO_INTR_DISABLE,
         };
         esp_idf_svc::sys::gpio_config(&io_conf);
+
+        // Explicitly enforce direction and pullup mode at HAL level
+        esp_idf_svc::sys::gpio_set_direction(pins::PIN_SYNC_BUTTON, esp_idf_svc::sys::gpio_mode_t_GPIO_MODE_INPUT);
+        esp_idf_svc::sys::gpio_set_pull_mode(pins::PIN_SYNC_BUTTON, esp_idf_svc::sys::gpio_pull_mode_t_GPIO_PULLUP_ONLY);
+        esp_idf_svc::sys::gpio_set_direction(pins::PIN_BOOT_BUTTON, esp_idf_svc::sys::gpio_mode_t_GPIO_MODE_INPUT);
+        esp_idf_svc::sys::gpio_set_pull_mode(pins::PIN_BOOT_BUTTON, esp_idf_svc::sys::gpio_pull_mode_t_GPIO_PULLUP_ONLY);
     }
 
     // 3. Storage initialization
@@ -170,6 +176,7 @@ fn main() -> anyhow::Result<()> {
             let boot_time_ms = unsafe { (esp_idf_svc::sys::esp_timer_get_time() / 1000) as u32 };
             let mut last_bg_retry_ms = 0u32;
             let mut last_is_tx = false;
+            let mut last_raw_low = false;
 
             loop {
                 let now_ms = unsafe { (esp_idf_svc::sys::esp_timer_get_time() / 1000) as u32 };
@@ -302,17 +309,24 @@ fn main() -> anyhow::Result<()> {
                                 "[Schedule] Triggering scheduled broadcast at {:02}:{:02} ({} min)...",
                                 tm_val.tm_hour, tm_val.tm_min, current_cfg.broadcast_duration_min
                             );
-                            carrier.start(&current_cfg, None);
+                            carrier.start(&current_cfg, None, "schedule");
                         }
                     }
                 }
 
                 // Manual Bedside Sync Button (SW1 / J3 on GPIO 3 or Onboard BOOT on GPIO 9, Active LOW)
-                // Filter mechanical contact bounce: require 3 consecutive samples (~60ms) of stable level
-                let raw_btn_low = unsafe {
-                    esp_idf_svc::sys::gpio_get_level(pins::PIN_SYNC_BUTTON) == 0
-                        || esp_idf_svc::sys::gpio_get_level(pins::PIN_BOOT_BUTTON) == 0
-                };
+                // Filter mechanical contact bounce: require 2 consecutive samples (~20ms) of stable level
+                let lvl3 = unsafe { esp_idf_svc::sys::gpio_get_level(pins::PIN_SYNC_BUTTON) };
+                let lvl9 = unsafe { esp_idf_svc::sys::gpio_get_level(pins::PIN_BOOT_BUTTON) };
+                let raw_btn_low = lvl3 == 0 || lvl9 == 0;
+
+                if raw_btn_low != last_raw_low {
+                    last_raw_low = raw_btn_low;
+                    web::log_diagnostic(&format!(
+                        "Physical sync pin level transition: pressed={}, GPIO3={}, GPIO9={}",
+                        raw_btn_low, lvl3, lvl9
+                    ));
+                }
 
                 if raw_btn_low {
                     btn_consecutive_low = btn_consecutive_low.saturating_add(1);
@@ -322,8 +336,8 @@ fn main() -> anyhow::Result<()> {
                     btn_consecutive_low = 0;
                 }
 
-                // Rising edge of debounced button press (~60ms steady LOW)
-                if btn_consecutive_low >= 3 && !btn_stable_pressed {
+                // Rising edge of debounced button press (~20ms steady LOW)
+                if btn_consecutive_low >= 2 && !btn_stable_pressed {
                     btn_stable_pressed = true;
 
                     // Enforce 500ms cooldown between successive button actions to prevent bounce flutter
@@ -332,6 +346,7 @@ fn main() -> anyhow::Result<()> {
                         if is_tx {
                             info!("[Button] Physical sync button pressed: Stopping transmission.");
                             web::log_diagnostic("Physical sync button pressed: Stopping broadcast.");
+                            status_led.trigger_button_stop(now_ms);
                             carrier.stop(config.wifi.modem_sleep);
                         } else {
                             info!("[Button] Physical sync button pressed: Starting transmission for 15 mins.");
@@ -342,18 +357,26 @@ fn main() -> anyhow::Result<()> {
                                     let _ = mgr.sync(Duration::from_secs(3));
                                 }
                             }
-                            // Physical button always broadcasts as the current radio station for 15 minutes
-                            let mut cur_cfg = app_state.lock().map(|a| a.config.clone()).unwrap_or_else(|_| config.clone());
-                            cur_cfg.carousel_enabled = false;
-                            carrier.start(&cur_cfg, Some(15 * 60));
+                            let now_sec_check = unsafe { esp_idf_svc::sys::time(core::ptr::null_mut()) as u32 };
+                            if now_sec_check > 1_700_000_000 {
+                                status_led.trigger_button_start(now_ms);
+                                // Physical button always broadcasts as the current radio station for 15 minutes
+                                let mut cur_cfg = app_state.lock().map(|a| a.config.clone()).unwrap_or_else(|_| config.clone());
+                                cur_cfg.carousel_enabled = false;
+                                carrier.start(&cur_cfg, Some(15 * 60), "button");
+                            } else {
+                                warn!("[Button] Physical sync button pressed, but RTC clock not synchronized to NTP!");
+                                web::log_diagnostic("Sync button pressed: Clock not synchronized. Broadcast blocked.");
+                                status_led.trigger_button_error(now_ms);
+                            }
                         }
                     }
-                } else if btn_consecutive_high >= 3 && btn_stable_pressed {
-                    // Debounced release (~60ms steady HIGH)
+                } else if btn_consecutive_high >= 2 && btn_stable_pressed {
+                    // Debounced release (~20ms steady HIGH)
                     btn_stable_pressed = false;
                 }
 
-                std::thread::sleep(Duration::from_millis(20));
+                std::thread::sleep(Duration::from_millis(10));
             }
         }
         WifiState::ProvisioningMode { ap_ssid, scanned_ssids, wifi_handle } => {
@@ -371,6 +394,7 @@ fn main() -> anyhow::Result<()> {
             let mut btn_consecutive_low: u8 = 0;
             let mut btn_consecutive_high: u8 = 0;
             let mut last_button_action_ms = 0u32;
+            let mut last_raw_low = false;
 
             loop {
                 let now_ms = unsafe { (esp_idf_svc::sys::esp_timer_get_time() / 1000) as u32 };
@@ -390,11 +414,15 @@ fn main() -> anyhow::Result<()> {
                     }
                 }
 
-                // Check physical button in SoftAP mode
-                let raw_btn_low = unsafe {
-                    esp_idf_svc::sys::gpio_get_level(pins::PIN_SYNC_BUTTON) == 0
-                        || esp_idf_svc::sys::gpio_get_level(pins::PIN_BOOT_BUTTON) == 0
-                };
+                // Check physical button in SoftAP mode (GPIO 3 or GPIO 9, Active LOW)
+                let lvl3 = unsafe { esp_idf_svc::sys::gpio_get_level(pins::PIN_SYNC_BUTTON) };
+                let lvl9 = unsafe { esp_idf_svc::sys::gpio_get_level(pins::PIN_BOOT_BUTTON) };
+                let raw_btn_low = lvl3 == 0 || lvl9 == 0;
+
+                if raw_btn_low != last_raw_low {
+                    last_raw_low = raw_btn_low;
+                    info!("[Button SoftAP] Pin transition: pressed={}, GPIO3={}, GPIO9={}", raw_btn_low, lvl3, lvl9);
+                }
 
                 if raw_btn_low {
                     btn_consecutive_low = btn_consecutive_low.saturating_add(1);
@@ -404,23 +432,26 @@ fn main() -> anyhow::Result<()> {
                     btn_consecutive_low = 0;
                 }
 
-                if btn_consecutive_low >= 3 && !btn_stable_pressed {
+                if btn_consecutive_low >= 2 && !btn_stable_pressed {
                     btn_stable_pressed = true;
                     if now_ms.saturating_sub(last_button_action_ms) >= 500 {
                         last_button_action_ms = now_ms;
                         if is_tx {
                             info!("[Button] Sync button pressed: Stopping transmission.");
+                            status_led.trigger_button_stop(now_ms);
                             carrier.stop(false);
                         } else if is_synced {
                             info!("[Button] Sync button pressed in SoftAP: Starting transmission for 15 mins.");
+                            status_led.trigger_button_start(now_ms);
                             let mut cur_cfg = config.clone();
                             cur_cfg.carousel_enabled = false;
-                            carrier.start(&cur_cfg, Some(15 * 60));
+                            carrier.start(&cur_cfg, Some(15 * 60), "button");
                         } else {
                             warn!("[Button] Sync button pressed, but RTC clock is not yet synchronized (Wi-Fi setup required).");
+                            status_led.trigger_button_error(now_ms);
                         }
                     }
-                } else if btn_consecutive_high >= 3 && btn_stable_pressed {
+                } else if btn_consecutive_high >= 2 && btn_stable_pressed {
                     btn_stable_pressed = false;
                 }
 
@@ -429,7 +460,7 @@ fn main() -> anyhow::Result<()> {
                     unsafe { esp_idf_svc::sys::esp_restart(); }
                 }
 
-                std::thread::sleep(Duration::from_millis(20));
+                std::thread::sleep(Duration::from_millis(10));
             }
         }
     }

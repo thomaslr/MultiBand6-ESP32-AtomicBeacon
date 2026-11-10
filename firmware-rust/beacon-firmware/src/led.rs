@@ -1,25 +1,38 @@
-//! Onboard Status LED Controller with Nightstand Breathing Wave.
+//! Onboard Status LED Controller with Nightstand Breathing Wave and Physical Button ACK Patterns.
 //!
 //! ESP32-C3 SuperMini Status LED is located on GPIO 8 (Active LOW).
-//! In ESP-IDF LEDC, an 8-bit timer ranges from 0 to 256 (where 256 is 100% HIGH).
-//! Setting duty to 255 causes a 1/256th low-pulse glitch (0.39% duty), which makes
-//! high-efficiency LEDs glow faintly. We freeze the pin firmly HIGH (1) in standby.
-//! During active RF transmission, breathes smoothly with a 4.0s sine cycle.
+//! Patterns:
+//! - Standby: completely OFF (frozen HIGH, zero glow / zero leakage)
+//! - Button Start ACK: 3 rapid crisp blips (100ms ON / 100ms OFF x 3 = 600ms) then transitions to Breathing
+//! - Button Stop ACK: 2 deliberate blinks (200ms ON / 150ms OFF x 2 = 700ms) then Off
+//! - Button Error ACK: 5 fast strobes (50ms ON / 50ms OFF x 5 = 500ms) then Off
+//! - Breathing Wave: 4.0s gentle sine wave during active RF transmission (capped at ~30% peak brightness)
 
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 
 use esp_idf_svc::sys::{
-    ledc_channel_config_t, ledc_channel_t_LEDC_CHANNEL_1, ledc_channel_config,
+    ledc_channel_config, ledc_channel_config_t, ledc_channel_t_LEDC_CHANNEL_1,
     ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_set_duty, ledc_stop, ledc_timer_bit_t_LEDC_TIMER_8_BIT,
-    ledc_timer_config, ledc_timer_config_t, ledc_timer_t_LEDC_TIMER_1,
-    ledc_update_duty,
+    ledc_timer_config, ledc_timer_config_t, ledc_timer_t_LEDC_TIMER_1, ledc_update_duty,
 };
 use crate::pins::PIN_STATUS_LED;
 
 const LED_BREATHE_PERIOD_MS: u32 = 4000;
 const LED_MAX_BRIGHTNESS: f32 = 75.0; // ~30% peak brightness for nightstand comfort
+const LED_ACK_BRIGHTNESS: u32 = 180;  // Crisp, unmistakable brightness for button acknowledgments
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum LedPattern {
+    Standby,
+    Breathing,
+    ButtonStartAck(u32), // start_ms
+    ButtonStopAck(u32),  // start_ms
+    ButtonErrorAck(u32), // start_ms
+}
 
 pub struct StatusLed {
+    pattern: Mutex<LedPattern>,
     was_transmitting: AtomicBool,
 }
 
@@ -52,27 +65,139 @@ impl StatusLed {
             ledc_stop(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1, 1);
         }
         StatusLed {
+            pattern: Mutex::new(LedPattern::Standby),
             was_transmitting: AtomicBool::new(false),
         }
     }
 
-    /// Updates breathing pulse based on current milliseconds timestamp.
+    /// Triggers the 3-blip start acknowledgment (~600ms) when the physical sync button is pressed.
+    pub fn trigger_button_start(&self, now_ms: u32) {
+        if let Ok(mut pat) = self.pattern.lock() {
+            *pat = LedPattern::ButtonStartAck(now_ms);
+        }
+    }
+
+    /// Triggers the 2-blink stop acknowledgment (~700ms) when the sync button cancels a broadcast.
+    pub fn trigger_button_stop(&self, now_ms: u32) {
+        if let Ok(mut pat) = self.pattern.lock() {
+            *pat = LedPattern::ButtonStopAck(now_ms);
+        }
+    }
+
+    /// Triggers the 5-strobe error acknowledgment (~500ms) if the button is pressed without valid RTC time.
+    pub fn trigger_button_error(&self, now_ms: u32) {
+        if let Ok(mut pat) = self.pattern.lock() {
+            *pat = LedPattern::ButtonErrorAck(now_ms);
+        }
+    }
+
+    /// Updates status LED output based on active pattern and transmission status.
     pub fn update(&self, is_transmitting: bool, now_ms: u32) {
+        let mut pat = match self.pattern.lock() {
+            Ok(p) => *p,
+            Err(_) => return,
+        };
+
         unsafe {
-            if is_transmitting {
-                self.was_transmitting.store(true, Ordering::Relaxed);
-                let phase = ((now_ms % LED_BREATHE_PERIOD_MS) as f32 / LED_BREATHE_PERIOD_MS as f32)
-                    * 2.0
-                    * core::f32::consts::PI;
-                let factor = (1.0 - phase.cos()) * 0.5;
-                let brightness = (factor * factor * LED_MAX_BRIGHTNESS) as u32;
-                // Active LOW: 256 = OFF, lower values increase brightness
-                let duty = 256u32.saturating_sub(brightness);
-                ledc_set_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1, duty);
-                ledc_update_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1);
-            } else if self.was_transmitting.swap(false, Ordering::Relaxed) {
-                // When ending transmission, hold pin firmly HIGH at logic 1 (100% dark)
-                ledc_stop(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1, 1);
+            match pat {
+                LedPattern::ButtonStartAck(start_ms) => {
+                    let elapsed = now_ms.saturating_sub(start_ms);
+                    if elapsed < 600 {
+                        // 3 rapid pulses: 100ms ON / 100ms OFF x 3
+                        let is_on = match elapsed {
+                            0..=99 | 200..=299 | 400..=499 => true,
+                            _ => false,
+                        };
+                        let duty = if is_on {
+                            256u32.saturating_sub(LED_ACK_BRIGHTNESS)
+                        } else {
+                            256
+                        };
+                        ledc_set_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1, duty);
+                        ledc_update_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1);
+                    } else {
+                        // Transition to Breathing wave once the 3 blips complete
+                        pat = LedPattern::Breathing;
+                        if let Ok(mut p) = self.pattern.lock() {
+                            *p = LedPattern::Breathing;
+                        }
+                    }
+                }
+                LedPattern::ButtonStopAck(start_ms) => {
+                    let elapsed = now_ms.saturating_sub(start_ms);
+                    if elapsed < 700 {
+                        // 2 deliberate blinks: 200ms ON, 150ms OFF, 200ms ON, 150ms OFF
+                        let is_on = match elapsed {
+                            0..=199 | 350..=549 => true,
+                            _ => false,
+                        };
+                        let duty = if is_on {
+                            256u32.saturating_sub(LED_ACK_BRIGHTNESS)
+                        } else {
+                            256
+                        };
+                        ledc_set_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1, duty);
+                        ledc_update_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1);
+                    } else {
+                        // Transition to Standby (dark) once stop blinks complete
+                        if let Ok(mut p) = self.pattern.lock() {
+                            *p = LedPattern::Standby;
+                        }
+                        ledc_stop(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1, 1);
+                    }
+                    return;
+                }
+                LedPattern::ButtonErrorAck(start_ms) => {
+                    let elapsed = now_ms.saturating_sub(start_ms);
+                    if elapsed < 500 {
+                        // 5 fast strobe bursts: 50ms ON / 50ms OFF x 5
+                        let is_on = (elapsed % 100) < 50;
+                        let duty = if is_on {
+                            256u32.saturating_sub(LED_ACK_BRIGHTNESS)
+                        } else {
+                            256
+                        };
+                        ledc_set_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1, duty);
+                        ledc_update_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1);
+                    } else {
+                        // Transition to Standby once strobe finishes
+                        if let Ok(mut p) = self.pattern.lock() {
+                            *p = LedPattern::Standby;
+                        }
+                        ledc_stop(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1, 1);
+                    }
+                    return;
+                }
+                LedPattern::Standby => {
+                    if is_transmitting {
+                        // Automated or Web sync: starts breathing directly with zero start blips
+                        pat = LedPattern::Breathing;
+                        if let Ok(mut p) = self.pattern.lock() {
+                            *p = LedPattern::Breathing;
+                        }
+                    }
+                }
+                LedPattern::Breathing => {}
+            }
+
+            // Execute Breathing Wave when in Breathing state
+            if pat == LedPattern::Breathing {
+                if is_transmitting {
+                    self.was_transmitting.store(true, Ordering::Relaxed);
+                    let phase = ((now_ms % LED_BREATHE_PERIOD_MS) as f32 / LED_BREATHE_PERIOD_MS as f32)
+                        * 2.0
+                        * core::f32::consts::PI;
+                    let factor = (1.0 - phase.cos()) * 0.5;
+                    let brightness = (factor * factor * LED_MAX_BRIGHTNESS) as u32;
+                    let duty = 256u32.saturating_sub(brightness);
+                    ledc_set_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1, duty);
+                    ledc_update_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1);
+                } else if self.was_transmitting.swap(false, Ordering::Relaxed) {
+                    if let Ok(mut p) = self.pattern.lock() {
+                        *p = LedPattern::Standby;
+                    }
+                    ledc_stop(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1, 1);
+                }
             }
         }
     }

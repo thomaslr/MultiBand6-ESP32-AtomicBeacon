@@ -18,9 +18,10 @@ let clientEpochBaseMs = Date.now();
 let transmitRemainSec = 0;
 let transmitRemainBaseMs = Date.now();
 let appConfig = null;
-let currentFirmwareVersion = '0.1.9';
+let currentFirmwareVersion = '0.1.10';
 let latestReleaseData = null;
 let logAutoRefreshInterval = null;
+let statusPollTimer = null;
 
 // --- Tab Management ---
 function switchTab(tabName) {
@@ -137,6 +138,14 @@ function capitalize(s) {
 }
 
 // --- Status Polling & Clock Ticking ---
+function scheduleAdaptivePoll() {
+  if (statusPollTimer) clearTimeout(statusPollTimer);
+  const interval = isTransmitting ? 5000 : 15000;
+  statusPollTimer = setTimeout(async () => {
+    await pollStatus();
+  }, interval);
+}
+
 async function pollStatus() {
   try {
     const res = await fetch('/api/status');
@@ -160,8 +169,10 @@ async function pollStatus() {
 
     // Update UI elements
     updateStatusDisplay(data);
+    scheduleAdaptivePoll();
   } catch (err) {
     console.warn('Status poll offline:', err);
+    scheduleAdaptivePoll();
   }
 }
 
@@ -187,10 +198,26 @@ function updateStatusDisplay(data) {
   const statusText = document.getElementById('statusText');
   const btnTransmit = document.getElementById('btnTransmit');
   const btnStop = document.getElementById('btnStop');
+  const manualSyncBanner = document.getElementById('manualSyncBanner');
+  const manualSyncStation = document.getElementById('manualSyncStation');
+  const triggerSource = data.trigger_source || 'standby';
+  const isButtonTriggered = data.transmitting && triggerSource === 'button';
+
+  const activeSt = data.active_station !== undefined ? data.active_station : (data.activeStation || 0);
+  const st = STATIONS[activeSt] || STATIONS[0];
 
   if (data.transmitting) {
     statusBadge.className = 'status-indicator status-live';
-    statusText.innerText = 'TRANSMITTING';
+    if (isButtonTriggered) {
+      statusText.innerText = 'TRANSMITTING (Bedside Button)';
+      if (manualSyncBanner) {
+        if (manualSyncStation) manualSyncStation.innerText = st.name;
+        manualSyncBanner.style.display = 'flex';
+      }
+    } else {
+      statusText.innerText = 'TRANSMITTING';
+      if (manualSyncBanner) manualSyncBanner.style.display = 'none';
+    }
     btnTransmit.disabled = true;
     btnStop.disabled = false;
   } else {
@@ -198,8 +225,21 @@ function updateStatusDisplay(data) {
     statusText.innerText = 'STANDBY';
     btnTransmit.disabled = false;
     btnStop.disabled = true;
+    if (manualSyncBanner) manualSyncBanner.style.display = 'none';
   }
   updateStopButtonCountdown();
+
+  // Update GPIO button diagnostics
+  const diagGpio3 = document.getElementById('diagGpio3');
+  if (diagGpio3 && data.gpio3_level !== undefined) {
+    diagGpio3.textContent = data.gpio3_level === 0 ? 'LOW (Pressed)' : 'HIGH (Released)';
+    diagGpio3.style.color = data.gpio3_level === 0 ? 'var(--accent)' : 'inherit';
+  }
+  const diagGpio9 = document.getElementById('diagGpio9');
+  if (diagGpio9 && data.gpio9_level !== undefined) {
+    diagGpio9.textContent = data.gpio9_level === 0 ? 'LOW (Pressed)' : 'HIGH (Released)';
+    diagGpio9.style.color = data.gpio9_level === 0 ? 'var(--accent)' : 'inherit';
+  }
 
   const activeSt = data.active_station !== undefined ? data.active_station : (data.activeStation || 0);
   const st = STATIONS[activeSt] || STATIONS[0];
@@ -971,8 +1011,7 @@ window.onload = () => {
   }
 
   fetchConfig();
-  pollStatus();
-  setInterval(pollStatus, 60000); // 1-minute status refresh from ESP32
+  pollStatus(); // Initializes state and starts adaptive polling loop (5s active, 15s standby)
   setInterval(tickClock, 1000);   // 1-second local clock tick
 
   // Fetch initial OTA update status from ESP32

@@ -138,6 +138,7 @@ pub fn trigger_ota_check_background(app_state: Arc<Mutex<AppState>>) {
 #[derive(serde::Serialize)]
 struct StatusResponse {
     transmitting: bool,
+    trigger_source: String,
     active_station: u8,
     station_name: &'static str,
     carrier_freq: u32,
@@ -155,6 +156,8 @@ struct StatusResponse {
     wifi_rssi: i32,
     hostname: String,
     version: &'static str,
+    gpio3_level: i32,
+    gpio9_level: i32,
 }
 
 pub fn create_web_server(state: Arc<Mutex<AppState>>) -> Result<EspHttpServer<'static>, EspIOError> {
@@ -228,8 +231,13 @@ pub fn create_web_server(state: Arc<Mutex<AppState>>) -> Result<EspHttpServer<'s
 
         let total_stages = c_state.carousel_stations.lock().unwrap().len();
 
+        let trigger_source = c_state.trigger_source.lock().unwrap().clone();
+        let gpio3_level = unsafe { esp_idf_svc::sys::gpio_get_level(crate::pins::PIN_SYNC_BUTTON) };
+        let gpio9_level = unsafe { esp_idf_svc::sys::gpio_get_level(crate::pins::PIN_BOOT_BUTTON) };
+
         let resp = StatusResponse {
             transmitting: is_tx,
+            trigger_source,
             active_station: station as u8,
             station_name: station.station_name(),
             carrier_freq: freq,
@@ -247,6 +255,8 @@ pub fn create_web_server(state: Arc<Mutex<AppState>>) -> Result<EspHttpServer<'s
             wifi_rssi: app.wifi_rssi,
             hostname: app.config.system.hostname.clone(),
             version: env!("CARGO_PKG_VERSION"),
+            gpio3_level,
+            gpio9_level,
         };
 
         let json = serde_json::to_string(&resp).unwrap_or_default();
@@ -310,7 +320,7 @@ pub fn create_web_server(state: Arc<Mutex<AppState>>) -> Result<EspHttpServer<'s
                 let _ = sntp.sync(std::time::Duration::from_secs(3));
             }
         }
-        app.carrier.start(&app.config, None);
+        app.carrier.start(&app.config, None, "web");
         send_json(req, 200, r#"{"status":"transmitting"}"#)
     })?;
 

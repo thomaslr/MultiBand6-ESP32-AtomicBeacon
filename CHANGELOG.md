@@ -5,6 +5,22 @@ All notable changes to the MultiBand 6 ESP32 Atomic Beacon project will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.10] - 2026-11-10
+
+### Added
+- **Physical Sync Button LED Acknowledgment Flash Patterns**:
+  - **Start ACK**: 3 crisp rapid blips (100ms ON / 100ms OFF x 3 = 600ms) on the onboard LED (GPIO 8) confirming the physical bedside button press, transitioning seamlessly into the calm nightstand breathing wave (4.0s sine pulse). Distinct from automated/web syncs which start breathing directly without initial blips.
+  - **Stop ACK**: 2 deliberate blinks (200ms ON / 150ms OFF x 2 = 700ms) confirming transmission cancellation before entering completely dark standby (0V across LED, zero glow).
+  - **Error ACK**: 5 fast strobe bursts (50ms ON / 50ms OFF x 5 = 500ms) indicating an un-synchronized RTC clock (e.g. before initial NTP lock), preventing invalid carrier generation.
+- **Webpage Bedside Sync Feedback & Adaptive Polling**:
+  - Live status badge displays `TRANSMITTING (Bedside Button)` when triggered physically.
+  - High-visibility notification banner on dashboard: `⚡ Bedside Manual Sync: Broadcasting [Station] for 15 minutes.`
+  - Adaptive status polling: automatically accelerates to 5s during active broadcast (and 15s in standby) instead of static 60s intervals.
+  - Diagnostics tab displays real-time contact states for `Bedside Sync (GPIO 3)` and `BOOT Pin (GPIO 9)`.
+
+### Fixed
+- **Instant Button Responsiveness**: Reduced debouncing loop sample period from 20ms to 10ms and lowered filter threshold to 2 consecutive samples (20ms contact time), ensuring light or quick finger taps register reliably. Added contact transition diagnostics to live system log stream.
+
 ## [0.1.9] - 2026-11-10
 
 ### Fixed

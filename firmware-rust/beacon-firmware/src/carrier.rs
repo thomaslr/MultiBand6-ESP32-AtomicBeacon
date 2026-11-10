@@ -26,6 +26,7 @@ pub struct CarrierState {
     pub transmit_start_sec: AtomicU32,
     pub transmit_duration_sec: AtomicU32,
     pub user_offset_hours: Mutex<i32>,
+    pub trigger_source: Mutex<String>,
 
     // Carousel state
     pub carousel_enabled: AtomicBool,
@@ -141,6 +142,7 @@ impl CarrierManager {
             transmit_start_sec: AtomicU32::new(0),
             transmit_duration_sec: AtomicU32::new(0),
             user_offset_hours: Mutex::new(config.offset_hours),
+            trigger_source: Mutex::new("standby".to_string()),
             carousel_enabled: AtomicBool::new(config.carousel_enabled),
             carousel_stations: Mutex::new(Self::build_station_list(config.carousel_mask, config.station)),
             carousel_stage_idx: AtomicUsize::new(0),
@@ -178,10 +180,12 @@ impl CarrierManager {
         list
     }
 
-    pub fn start(&self, config: &AppConfig, duration_sec: Option<u32>) {
+    pub fn start(&self, config: &AppConfig, duration_sec: Option<u32>, source: &str) {
         if self.state.is_transmitting.load(Ordering::Relaxed) {
             return;
         }
+
+        *self.state.trigger_source.lock().unwrap() = source.to_string();
 
         // Lock Wi-Fi modem sleep OFF during broadcast to ensure clean power rail
         unsafe {
@@ -269,6 +273,7 @@ impl CarrierManager {
             return;
         }
         self.state.is_transmitting.store(false, Ordering::SeqCst);
+        *self.state.trigger_source.lock().unwrap() = "standby".to_string();
 
         unsafe {
             if !TIMER_HANDLE.is_null() {
