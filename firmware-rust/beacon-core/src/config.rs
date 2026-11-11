@@ -37,7 +37,7 @@ pub struct WifiConfig {
 impl Default for WifiConfig {
     fn default() -> Self {
         Self {
-            modem_sleep: true,
+            modem_sleep: false,
             tx_power: 78,
             force_20mhz: true,
         }

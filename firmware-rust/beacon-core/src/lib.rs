@@ -41,5 +41,28 @@ mod tests {
         assert!(!is_newer_version("v0.1.4", "v0.1.4"));
         assert!(!is_newer_version("v0.1.3", "v0.1.4"));
     }
+
+    #[test]
+    fn test_default_wifi_config_and_nvs_serialization() {
+        let def = config::AppConfig::default();
+        assert_eq!(def.wifi.tx_power, 78);
+        assert!(!def.wifi.modem_sleep);
+        assert!(def.wifi.force_20mhz);
+
+        // Verify NVS JSON round-trip preserves user overrides
+        let mut custom = def.clone();
+        custom.wifi.modem_sleep = true;
+        custom.wifi.tx_power = 68;
+        let json = serde_json::to_string(&custom).unwrap();
+        let loaded: config::AppConfig = serde_json::from_str(&json).unwrap();
+        assert_eq!(loaded, custom);
+
+        // Verify partial/older NVS JSON missing wifi fields falls back to new defaults
+        let partial: config::AppConfig = serde_json::from_str(r#"{"station":"Wwvb"}"#).unwrap();
+        assert_eq!(partial.station, protocols::TimeStation::Wwvb);
+        assert_eq!(partial.wifi.tx_power, 78);
+        assert!(!partial.wifi.modem_sleep);
+        assert!(partial.wifi.force_20mhz);
+    }
 }
 

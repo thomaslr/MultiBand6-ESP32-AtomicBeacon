@@ -260,7 +260,11 @@ fn main() -> anyhow::Result<()> {
                     if tx_dur > 0 && (now_sec.saturating_sub(tx_start)) >= tx_dur {
                         info!("[Main] Scheduled/test broadcast window complete.");
                         web::log_diagnostic("Broadcast window completed. Entering standby.");
-                        carrier.stop(config.wifi.modem_sleep);
+                        let ms_enabled = app_state
+                            .lock()
+                            .map(|a| a.config.wifi.modem_sleep)
+                            .unwrap_or(config.wifi.modem_sleep);
+                        carrier.stop(ms_enabled);
                     }
                 }
 
@@ -371,7 +375,11 @@ fn main() -> anyhow::Result<()> {
                             info!("[Button] Physical sync button pressed: Stopping transmission.");
                             web::log_diagnostic("Physical sync button pressed: Stopping broadcast.");
                             status_led.trigger_button_stop(now_ms);
-                            carrier.stop(config.wifi.modem_sleep);
+                            let ms_enabled = app_state
+                                .lock()
+                                .map(|a| a.config.wifi.modem_sleep)
+                                .unwrap_or(config.wifi.modem_sleep);
+                            carrier.stop(ms_enabled);
                         } else {
                             info!("[Button] Physical sync button pressed: Starting transmission for 15 mins.");
                             web::log_diagnostic("Physical sync button pressed: Starting 15m broadcast.");

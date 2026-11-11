@@ -287,10 +287,13 @@ impl CarrierManager {
             ledc_set_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_0, 0);
             ledc_update_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_0);
 
-            // Restore Wi-Fi modem sleep if configured
-            if modem_sleep_enabled {
-                esp_idf_svc::sys::esp_wifi_set_ps(esp_idf_svc::sys::wifi_ps_type_t_WIFI_PS_MIN_MODEM);
-            }
+            // Apply configured Wi-Fi power saving mode when returning to standby
+            let ps = if modem_sleep_enabled {
+                esp_idf_svc::sys::wifi_ps_type_t_WIFI_PS_MIN_MODEM
+            } else {
+                esp_idf_svc::sys::wifi_ps_type_t_WIFI_PS_NONE
+            };
+            esp_idf_svc::sys::esp_wifi_set_ps(ps);
         }
         info!("[Carrier] Broadcast stopped. Carrier OFF.");
     }

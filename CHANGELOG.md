@@ -5,6 +5,12 @@ All notable changes to the MultiBand 6 ESP32 Atomic Beacon project will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.13] - 2026-11-11
+
+### Changed
+- **Default Wi-Fi & RF Radio Profile (`beacon-core/src/config.rs`, `data/index.html`)**: Set default installation radio settings (used when NVS flash has no stored config) to `+19.5 dBm` (`tx_power: 78`), `Modem Sleep: Off` (`modem_sleep: false`), and `20 MHz Bandwidth (HT20): On` (`force_20mhz: true`) for maximum web UI responsiveness and zero DTIM wake latency on the ESP32-C3 SuperMini ceramic antenna while preserving existing user settings stored in NVS across reboots and OTA updates.
+- **Live Radio Config Preservation on Broadcast Stop (`main.rs`, `carrier.rs`)**: When a scheduled or bedside-button broadcast finishes, the radio now reads the live `app_state` NVS-backed `modem_sleep` setting rather than the initial boot snapshot.
+
 ## [0.1.12] - 2026-11-11
 
 ### Fixed
