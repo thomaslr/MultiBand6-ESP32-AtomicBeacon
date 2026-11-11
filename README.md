@@ -615,7 +615,18 @@ espflash save-image --merge --chip esp32c3 \
 
 ---
 
-## 12. License
+## 12. License & Commercial Inquiries
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+This project is released under a **Dual-License / Source-Available Model**:
+
+* **🛠️ Hardware & PCB Layouts (`pcb/`):** Licensed under **[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 (CC BY-NC-SA 4.0)](https://creativecommons.org/licenses/by-nc-sa/4.0/)**.
+* **💻 Firmware & Software (`firmware-rust/`, `data/`):** Licensed under the **[PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0)**.
+
+### For Makers & Hobbyists (Free)
+You are **100% free** to build, order personal PCBs, solder, flash, modify, and tinker with this project for personal, educational, and non-commercial home use.
+
+### For Commercial & For-Profit Use
+Manufacturing, distributing, or selling pre-assembled units, PCB kits, pre-flashed devices, or incorporating this design into commercial products or services is **strictly prohibited without a separate commercial license**.
+
+For full legal terms and commercial licensing inquiries, please see **[LICENSE.md](LICENSE.md)**.
 

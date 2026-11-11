@@ -1,21 +1,24 @@
-MIT License
+MultiBand 6 ESP32 Atomic Beacon — Dual License (Source-Available)
 
 Copyright (c) 2026 Robert Longbottom (@thomaslr)
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This project is licensed under a dual-license / source-available model:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. HARDWARE (Schematics, PCB Layouts, Gerbers, 3D Models in pcb/):
+   Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International (CC BY-NC-SA 4.0)
+   https://creativecommons.org/licenses/by-nc-sa/4.0/
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+2. SOFTWARE & FIRMWARE (Rust firmware in firmware-rust/, Web UI in data/, scripts/):
+   PolyForm Noncommercial License 1.0.0
+   https://polyformproject.org/licenses/noncommercial/1.0.0
+
+NON-COMMERCIAL / MAKER USE:
+Free of charge for makers, hobbyists, students, and personal experimentation.
+You may build, order personal PCBs, modify, and flash for non-commercial purposes.
+
+COMMERCIAL USE:
+Commercial sales, pre-assembled board distribution, commercial kits, or for-profit
+deployment are strictly PROHIBITED without a separate commercial license agreement.
+
+For full terms and commercial licensing inquiries, see LICENSE.md:
+https://github.com/robertlongbottom/MultiBand6-ESP32-AtomicBeacon/blob/main/LICENSE.md
