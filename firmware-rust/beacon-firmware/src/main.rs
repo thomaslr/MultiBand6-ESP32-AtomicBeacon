@@ -52,7 +52,6 @@ fn main() -> anyhow::Result<()> {
     let nvs_default = EspDefaultNvsPartition::take()?;
 
     let status_led = StatusLed::init();
-    status_led.update(false, 0); // Completely dark in standby
 
     // Bedside sync button (SW1 / J3: GPIO 3, Active LOW) & Onboard BOOT button (GPIO 9, Active LOW)
     // Configure both pins with internal pull-up and digital input enabled.
@@ -181,6 +180,7 @@ fn main() -> anyhow::Result<()> {
             let mut last_bg_retry_ms = 0u32;
             let mut last_rssi_check_ms = 0u32;
             let mut wifi_disconnect_streak: u8 = 0;
+            let mut wifi_connected = true;
             let mut last_is_tx = false;
             let mut last_raw_low = false;
 
@@ -206,14 +206,12 @@ fn main() -> anyhow::Result<()> {
                     last_is_tx = is_tx;
                 }
 
-                // Update LED breathing pulse
-                status_led.update(is_tx, now_ms);
-
-                // Update RSSI periodically & auto-reconnect if returning from a Wi-Fi dead zone
-                if now_ms.saturating_sub(last_rssi_check_ms) >= 5000 {
+                // Update RSSI & Wi-Fi link state every 1s, and auto-reconnect if returning from a Wi-Fi dead zone
+                if now_ms.saturating_sub(last_rssi_check_ms) >= 1000 {
                     last_rssi_check_ms = now_ms;
                     let mut rssi = 0i32;
                     if unsafe { esp_wifi_sta_get_rssi(&mut rssi) } == 0 {
+                        wifi_connected = true;
                         if wifi_disconnect_streak > 0 {
                             info!("[Wi-Fi] Station re-associated with AP (RSSI: {} dBm).", rssi);
                             web::log_diagnostic(&format!("Wi-Fi link restored (RSSI: {} dBm).", rssi));
@@ -222,20 +220,26 @@ fn main() -> anyhow::Result<()> {
                         if let Ok(mut app) = app_state.lock() {
                             app.wifi_rssi = rssi;
                         }
-                    } else if !is_tx {
-                        wifi_disconnect_streak = wifi_disconnect_streak.saturating_add(1);
-                        if wifi_disconnect_streak >= 3 && wifi_disconnect_streak % 3 == 0 {
-                            warn!(
-                                "[Wi-Fi] Station link lost ({}s). Triggering automatic background reconnect...",
-                                (wifi_disconnect_streak as u32) * 5
-                            );
-                            web::log_diagnostic("Wi-Fi link lost (dead zone): Attempting automatic reconnect...");
-                            unsafe {
-                                let _ = esp_idf_svc::sys::esp_wifi_connect();
+                    } else {
+                        wifi_connected = false;
+                        if !is_tx {
+                            wifi_disconnect_streak = wifi_disconnect_streak.saturating_add(1);
+                            if wifi_disconnect_streak >= 10 && wifi_disconnect_streak % 10 == 0 {
+                                warn!(
+                                    "[Wi-Fi] Station link lost ({}s). Triggering automatic background reconnect...",
+                                    wifi_disconnect_streak
+                                );
+                                web::log_diagnostic("Wi-Fi link lost (dead zone): Attempting automatic reconnect...");
+                                unsafe {
+                                    let _ = esp_idf_svc::sys::esp_wifi_connect();
+                                }
                             }
                         }
                     }
                 }
+
+                // Update LED status (10s heartbeat when Wi-Fi connected, 2s pulse when Wi-Fi lost, breathing when transmitting)
+                status_led.update(is_tx, wifi_connected, now_ms);
 
                 // Background SNTP retry if boot sync failed or hasn't settled yet (every 15s)
                 if !is_synced && !is_tx && now_ms.saturating_sub(last_bg_retry_ms) >= 15_000 {
@@ -434,7 +438,8 @@ fn main() -> anyhow::Result<()> {
                 let now_sec = unsafe { esp_idf_svc::sys::time(core::ptr::null_mut()) as u32 };
                 let is_synced = now_sec > 1_700_000_000;
 
-                status_led.update(is_tx, now_ms);
+                // In SoftAP Provisioning Mode, router Wi-Fi is not connected (2s pulse in standby)
+                status_led.update(is_tx, false, now_ms);
 
                 // Check transmission duration timeout
                 if is_tx {

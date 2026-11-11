@@ -5,6 +5,13 @@ All notable changes to the MultiBand 6 ESP32 Atomic Beacon project will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.14] - 2026-11-11
+
+### Added
+- **Onboard Status LED Wi-Fi Heartbeat & Link-Loss Indicators (`led.rs`, `main.rs`)**:
+  - **Wi-Fi Connected Heartbeat**: Pulses once every 10 seconds (`120 ms` ON) at 50% brightness (`128 / 256` PWM duty) during standby once connected to Wi-Fi.
+  - **Wi-Fi Lost Indicator**: Pulses once every 2 seconds (`120 ms` ON) at 50% brightness (`128 / 256` PWM duty) whenever the Wi-Fi station link is lost (or while waiting in SoftAP provisioning mode), with 1-second RSSI link detection.
+
 ## [0.1.13] - 2026-11-11
 
 ### Changed

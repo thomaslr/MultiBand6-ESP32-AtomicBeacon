@@ -2,14 +2,15 @@
 // Copyright (c) 2026 Robert Longbottom (@thomaslr)
 // Commercial licensing available — see LICENSE for details.
 
-//! Onboard Status LED Controller with Nightstand Breathing Wave and Physical Button ACK Patterns.
+//! Onboard Status LED Controller with Nightstand Breathing Wave, Wi-Fi Heartbeat, and Physical Button ACK Patterns.
 //!
 //! ESP32-C3 SuperMini Status LED is located on GPIO 8 (Active LOW).
 //! Patterns:
-//! - Standby: completely OFF (frozen HIGH, zero glow / zero leakage)
+//! - Standby (Wi-Fi Connected): 10.0s heartbeat (single 120ms pulse at 50% brightness every 10 seconds; frozen HIGH otherwise)
+//! - Standby (Wi-Fi Lost / Disconnected): 2.0s link-loss indicator (single 120ms pulse at 50% brightness every 2 seconds)
 //! - Button Start ACK: 3 rapid crisp blips (100ms ON / 100ms OFF x 3 = 600ms) then transitions to Breathing
-//! - Button Stop ACK: 2 deliberate blinks (200ms ON / 150ms OFF x 2 = 700ms) then Off
-//! - Button Error ACK: 5 fast strobes (50ms ON / 50ms OFF x 5 = 500ms) then Off
+//! - Button Stop ACK: 2 deliberate blinks (200ms ON / 150ms OFF x 2 = 700ms) then Standby
+//! - Button Error ACK: 5 fast strobes (50ms ON / 50ms OFF x 5 = 500ms) then Standby
 //! - Breathing Wave: 4.0s gentle sine wave during active RF transmission (capped at ~30% peak brightness)
 
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -23,8 +24,12 @@ use esp_idf_svc::sys::{
 use crate::pins::PIN_STATUS_LED;
 
 const LED_BREATHE_PERIOD_MS: u32 = 4000;
-const LED_MAX_BRIGHTNESS: f32 = 75.0; // ~30% peak brightness for nightstand comfort
-const LED_ACK_BRIGHTNESS: u32 = 180;  // Crisp, unmistakable brightness for button acknowledgments
+const LED_MAX_BRIGHTNESS: f32 = 75.0;        // ~30% peak brightness for nightstand comfort
+const LED_ACK_BRIGHTNESS: u32 = 180;         // Crisp, unmistakable brightness for button acknowledgments
+const LED_HALF_BRIGHTNESS: u32 = 128;        // 50% brightness (128 / 256) for Wi-Fi heartbeat & link-lost pulses
+const LED_WIFI_CONNECTED_PERIOD_MS: u32 = 10_000; // Heartbeat every 10 seconds when Wi-Fi is connected
+const LED_WIFI_LOST_PERIOD_MS: u32 = 2_000;       // Single pulse every 2 seconds when Wi-Fi is lost
+const LED_PULSE_DURATION_MS: u32 = 120;           // Crisp 120ms pulse width
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum LedPattern {
@@ -95,8 +100,8 @@ impl StatusLed {
         }
     }
 
-    /// Updates status LED output based on active pattern and transmission status.
-    pub fn update(&self, is_transmitting: bool, now_ms: u32) {
+    /// Updates status LED output based on active pattern, transmission status, and Wi-Fi link status.
+    pub fn update(&self, is_transmitting: bool, wifi_connected: bool, now_ms: u32) {
         let mut pat = match self.pattern.lock() {
             Ok(p) => *p,
             Err(_) => return,
@@ -108,10 +113,7 @@ impl StatusLed {
                     let elapsed = now_ms.saturating_sub(start_ms);
                     if elapsed < 600 {
                         // 3 rapid pulses: 100ms ON / 100ms OFF x 3
-                        let is_on = match elapsed {
-                            0..=99 | 200..=299 | 400..=499 => true,
-                            _ => false,
-                        };
+                        let is_on = matches!(elapsed, 0..=99 | 200..=299 | 400..=499);
                         let duty = if is_on {
                             256u32.saturating_sub(LED_ACK_BRIGHTNESS)
                         } else {
@@ -131,10 +133,7 @@ impl StatusLed {
                     let elapsed = now_ms.saturating_sub(start_ms);
                     if elapsed < 700 {
                         // 2 deliberate blinks: 200ms ON, 150ms OFF, 200ms ON, 150ms OFF
-                        let is_on = match elapsed {
-                            0..=199 | 350..=549 => true,
-                            _ => false,
-                        };
+                        let is_on = matches!(elapsed, 0..=199 | 350..=549);
                         let duty = if is_on {
                             256u32.saturating_sub(LED_ACK_BRIGHTNESS)
                         } else {
@@ -143,7 +142,7 @@ impl StatusLed {
                         ledc_set_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1, duty);
                         ledc_update_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1);
                     } else {
-                        // Transition to Standby (dark) once stop blinks complete
+                        // Transition to Standby once stop blinks complete
                         if let Ok(mut p) = self.pattern.lock() {
                             *p = LedPattern::Standby;
                         }
@@ -179,6 +178,23 @@ impl StatusLed {
                         if let Ok(mut p) = self.pattern.lock() {
                             *p = LedPattern::Breathing;
                         }
+                    } else {
+                        // Standby heartbeat:
+                        // - Wi-Fi connected: single pulse every 10s at half brightness (128/256)
+                        // - Wi-Fi lost: single pulse every 2s at half brightness (128/256)
+                        let period_ms = if wifi_connected {
+                            LED_WIFI_CONNECTED_PERIOD_MS
+                        } else {
+                            LED_WIFI_LOST_PERIOD_MS
+                        };
+                        if (now_ms % period_ms) < LED_PULSE_DURATION_MS {
+                            let duty = 256u32.saturating_sub(LED_HALF_BRIGHTNESS);
+                            ledc_set_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1, duty);
+                            ledc_update_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1);
+                        } else {
+                            ledc_stop(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1, 1);
+                        }
+                        return;
                     }
                 }
                 LedPattern::Breathing => {}
