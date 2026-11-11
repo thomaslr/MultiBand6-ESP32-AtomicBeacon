@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2026 Robert Longbottom (@thomaslr)
+// Commercial licensing available — see LICENSE for details.
+
 //! MultiBand 6 Worldwide Radio Atomic Clock Simulator Firmware
 //!
 //! ESP32-C3 SuperMini / Custom Carrier Board
@@ -175,6 +179,8 @@ fn main() -> anyhow::Result<()> {
             let mut boot_ota_checked = false;
             let boot_time_ms = unsafe { (esp_idf_svc::sys::esp_timer_get_time() / 1000) as u32 };
             let mut last_bg_retry_ms = 0u32;
+            let mut last_rssi_check_ms = 0u32;
+            let mut wifi_disconnect_streak: u8 = 0;
             let mut last_is_tx = false;
             let mut last_raw_low = false;
 
@@ -203,12 +209,30 @@ fn main() -> anyhow::Result<()> {
                 // Update LED breathing pulse
                 status_led.update(is_tx, now_ms);
 
-                // Update RSSI periodically
-                if now_ms % 5000 < 25 {
+                // Update RSSI periodically & auto-reconnect if returning from a Wi-Fi dead zone
+                if now_ms.saturating_sub(last_rssi_check_ms) >= 5000 {
+                    last_rssi_check_ms = now_ms;
                     let mut rssi = 0i32;
                     if unsafe { esp_wifi_sta_get_rssi(&mut rssi) } == 0 {
+                        if wifi_disconnect_streak > 0 {
+                            info!("[Wi-Fi] Station re-associated with AP (RSSI: {} dBm).", rssi);
+                            web::log_diagnostic(&format!("Wi-Fi link restored (RSSI: {} dBm).", rssi));
+                            wifi_disconnect_streak = 0;
+                        }
                         if let Ok(mut app) = app_state.lock() {
                             app.wifi_rssi = rssi;
+                        }
+                    } else if !is_tx {
+                        wifi_disconnect_streak = wifi_disconnect_streak.saturating_add(1);
+                        if wifi_disconnect_streak >= 3 && wifi_disconnect_streak % 3 == 0 {
+                            warn!(
+                                "[Wi-Fi] Station link lost ({}s). Triggering automatic background reconnect...",
+                                (wifi_disconnect_streak as u32) * 5
+                            );
+                            web::log_diagnostic("Wi-Fi link lost (dead zone): Attempting automatic reconnect...");
+                            unsafe {
+                                let _ = esp_idf_svc::sys::esp_wifi_connect();
+                            }
                         }
                     }
                 }

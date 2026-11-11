@@ -1,23 +1,23 @@
-// TimeStation Minimal Service Worker for PWA Offline / Standalone Installation
-const CACHE_NAME = 'timestation-pwa-v1';
+/*
+ * SPDX-License-Identifier: GPL-3.0-only
+ * Copyright (c) 2026 Robert Longbottom (@thomaslr)
+ * Commercial licensing available — see LICENSE for details.
+ */
 
-self.addEventListener('install', (event) => {
-    self.skipWaiting();
+// TimeStation Minimal Service Worker for PWA Standalone Installation
+// Intentionally avoids intercepting fetch requests so the single-threaded ESP32 HTTP
+// server is never burdened by duplicate proxy fetches or synthetic offline rejections.
+const CACHE_NAME = 'timestation-pwa-v2';
+
+self.addEventListener('install', () => {
+  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-    event.waitUntil(clients.claim());
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.map((k) => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
 });
 
-self.addEventListener('fetch', (event) => {
-    // Network-first pass-through ensuring real-time telemetry and control
-    event.respondWith(
-        fetch(event.request).catch(() => {
-            // Offline fallback for root navigation if Wi-Fi link drops momentarily
-            if (event.request.mode === 'navigate') {
-                return caches.match('/');
-            }
-            return Promise.reject('Offline');
-        })
-    );
-});

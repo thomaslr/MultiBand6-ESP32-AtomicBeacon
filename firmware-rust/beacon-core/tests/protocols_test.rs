@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2026 Robert Longbottom (@thomaslr)
+// Commercial licensing available — see LICENSE for details.
+
 use beacon_core::protocols::{generate_frame, TimeStation, TIMEPROTO_MAX_LEVEL_BYTES};
 
 const TEST_EPOCH: u64 = 1791289800; // 2026-10-06 12:30:00 UTC

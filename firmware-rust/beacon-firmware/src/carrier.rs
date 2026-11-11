@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2026 Robert Longbottom (@thomaslr)
+// Commercial licensing available — see LICENSE for details.
+
 //! RF Carrier Generation & 50ms Pulse Modulator for GPIO 1.
 
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicUsize, Ordering};

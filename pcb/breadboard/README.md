@@ -62,3 +62,9 @@ This directory contains the visual layout and wiring documentation for building 
 
 > [!WARNING]
 > **Transistor Pinout Warning:** The Japanese JIS pinout for the 2SC1815 is **Emitter (1), Collector (2), Base (3)** facing the flat side with leads pointing down. If you substitute a western 2N2222 / PN2222 (which has an **Emitter (1), Base (2), Collector (3)** pinout), you must route the $1\text{ k}\Omega$ base resistor to the middle pin (Base) and the LC tank to the right pin (Collector).
+
+---
+
+## 📜 Hardware License
+
+Licensed under the **[CERN Open Hardware Licence Version 2 - Strongly Reciprocal (CERN-OHL-S v2)](../../LICENSES/CERN-OHL-S-v2.txt)** (`CERN-OHL-S-2.0`). **Commercial License Available** for proprietary/closed-source manufacturing — see [`LICENSE`](../../LICENSE).

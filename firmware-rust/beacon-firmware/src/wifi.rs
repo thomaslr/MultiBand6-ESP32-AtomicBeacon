@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2026 Robert Longbottom (@thomaslr)
+// Commercial licensing available — see LICENSE for details.
+
 //! Wi-Fi Station and SoftAP Provisioning Management.
 //!
 //! Features learned from plant-esp32:

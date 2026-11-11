@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2026 Robert Longbottom (@thomaslr)
+// Commercial licensing available — see LICENSE for details.
+
 //! Non-Volatile Flash Configuration & Wi-Fi Storage using ESP32 NVS.
 
 use beacon_core::config::AppConfig;

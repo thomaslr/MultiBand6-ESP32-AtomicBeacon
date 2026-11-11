@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: CERN-OHL-S-2.0
+# Copyright (c) 2026 Robert Longbottom (@thomaslr)
+# Commercial licensing available — see LICENSE for details.
 """
 MultiBand 6 Atomic Clock Beacon - ESP32-C3 Carrier (Through-Hole Edition)
 Automated KiCad 10 / 9 Project & Manufacturing Generator

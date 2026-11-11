@@ -99,3 +99,9 @@ For the cleanest and easiest hand-soldering assembly, solder components in order
 3. **Transistor & Button:** $Q_1$ TO-92 transistor (observe `E-C-B` markings) and tactile pushbutton $SW_1$.
 4. **Tall Components:** Electrolytic capacitor $C_3$ (observe `+`/`-` polarity), screw terminal block $J_1$, and the $16\times 18\text{ mm}$ power inductor $L_1$.
 5. **Final Step:** Insert the ESP32-C3 SuperMini module into the socket headers with the USB-C port facing the board edge.
+
+---
+
+## 📜 Hardware License
+
+Licensed under the **[CERN Open Hardware Licence Version 2 - Strongly Reciprocal (CERN-OHL-S v2)](../../LICENSES/CERN-OHL-S-v2.txt)** (`CERN-OHL-S-2.0`). **Commercial License Available** for proprietary/closed-source manufacturing — see [`LICENSE`](../../LICENSE).

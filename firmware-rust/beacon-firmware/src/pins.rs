@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2026 Robert Longbottom (@thomaslr)
+// Commercial licensing available — see LICENSE for details.
+
 //! Hardware GPIO pin definitions for MultiBand6-ESP32-AtomicBeacon.
 //!
 //! Target Board: ESP32-C3 SuperMini / Custom SMT/DIY Carrier Boards.

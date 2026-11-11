@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2026 Robert Longbottom (@thomaslr)
+// Commercial licensing available — see LICENSE for details.
+
 //! Onboard Status LED Controller with Nightstand Breathing Wave and Physical Button ACK Patterns.
 //!
 //! ESP32-C3 SuperMini Status LED is located on GPIO 8 (Active LOW).

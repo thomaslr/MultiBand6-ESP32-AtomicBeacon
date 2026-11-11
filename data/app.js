@@ -1,3 +1,9 @@
+/*
+ * SPDX-License-Identifier: GPL-3.0-only
+ * Copyright (c) 2026 Robert Longbottom (@thomaslr)
+ * Commercial licensing available — see LICENSE for details.
+ */
+
 // TimeStation MultiBand6 Atomic Beacon Frontend Logic
 
 const STATIONS = [
@@ -18,10 +24,35 @@ let clientEpochBaseMs = Date.now();
 let transmitRemainSec = 0;
 let transmitRemainBaseMs = Date.now();
 let appConfig = null;
-let currentFirmwareVersion = '0.1.11';
+let appStatus = null;
+let currentFirmwareVersion = '0.1.12';
 let latestReleaseData = null;
 let logAutoRefreshInterval = null;
 let statusPollTimer = null;
+let dashboardInitialized = false;
+
+// Fetch helper with AbortController timeout so a dropped/stalled socket never hangs polling
+async function fetchWithTimeout(url, options = {}, timeoutMs = 6000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function formatDuration(totalSec) {
+  const sec = Math.max(0, Math.floor(Number(totalSec) || 0));
+  const days = Math.floor(sec / 86400);
+  const hours = Math.floor((sec % 86400) / 3600);
+  const mins = Math.floor((sec % 3600) / 60);
+  const secs = sec % 60;
+  if (days > 0) return `${days}d ${hours}h ${mins}m`;
+  if (hours > 0) return `${hours}h ${mins}m ${secs}s`;
+  if (mins > 0) return `${mins}m ${secs}s`;
+  return `${secs}s`;
+}
 
 // --- Tab Management ---
 function switchTab(tabName) {
@@ -49,7 +80,7 @@ function switchTab(tabName) {
 
 async function fetchConfig() {
   try {
-    const res = await fetch('/api/config');
+    const res = await fetchWithTimeout('/api/config', {}, 6000);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const cfg = await res.json();
     appConfig = cfg;
@@ -148,9 +179,10 @@ function scheduleAdaptivePoll() {
 
 async function pollStatus() {
   try {
-    const res = await fetch('/api/status');
+    const res = await fetchWithTimeout('/api/status', {}, 6000);
     if (!res.ok) throw new Error('Status fetch failed');
     const data = await res.json();
+    appStatus = data;
 
     const activeSt = data.active_station !== undefined ? data.active_station : (data.activeStation || 0);
     const offsetH = data.offset_hours !== undefined ? data.offset_hours : (data.offsetHours || 0);
@@ -274,6 +306,12 @@ function updateStatusDisplay(data) {
   const rssi = data.wifi_rssi !== undefined ? data.wifi_rssi : data.wifiRssi;
   if (rssi !== undefined && rssi !== 0) {
     document.getElementById('netRssi').innerText = `${rssi} dBm`;
+    const diagRssi = document.getElementById('diagRssi');
+    if (diagRssi) diagRssi.textContent = `${rssi} dBm`;
+  }
+  if (data.uptime_sec !== undefined) {
+    const diagUptime = document.getElementById('diagUptime');
+    if (diagUptime) diagUptime.textContent = formatDuration(data.uptime_sec);
   }
   const hostname = data.hostname;
   if (hostname) {
@@ -740,7 +778,7 @@ async function triggerDeviceOtaCheck() {
 
 async function fetchOtaStatus() {
   try {
-    const res = await fetch('/api/ota/status');
+    const res = await fetchWithTimeout('/api/ota/status', {}, 6000);
     if (!res.ok) throw new Error('OTA status fetch failed');
     const data = await res.json();
     latestOtaStatus = data;
@@ -947,7 +985,7 @@ function hideInfo() {
 // --- Diagnostics & Live Log Streaming ---
 async function fetchLogs() {
   try {
-    const res = await fetch('/api/logs');
+    const res = await fetchWithTimeout('/api/logs', {}, 6000);
     if (!res.ok) return;
     const data = await res.json();
 
@@ -1000,20 +1038,26 @@ function copyLogs() {
 }
 
 // --- Initial Startup ---
-window.onload = () => {
+function initDashboard() {
+  if (dashboardInitialized) return;
+  dashboardInitialized = true;
+
   // Register Service Worker for PWA Standalone App support
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch((err) => {
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      reg.update().catch(() => {});
+    }).catch((err) => {
       console.warn('[PWA] ServiceWorker registration failed:', err);
     });
   }
 
-  fetchConfig();
+  // Prioritize real-time status & clock first so single-threaded ESP32 httpd responds immediately
   pollStatus(); // Initializes state and starts adaptive polling loop (5s active, 15s standby)
   setInterval(tickClock, 1000);   // 1-second local clock tick
 
-  // Fetch initial OTA update status from ESP32
-  fetchOtaStatus();
+  // Stagger secondary initial fetches slightly to avoid socket contention on initial page load
+  setTimeout(fetchConfig, 150);
+  setTimeout(fetchOtaStatus, 400);
   setInterval(fetchOtaStatus, 300000); // 5-minute OTA status refresh from ESP32
 
   // Immediate refresh when tab becomes visible after being backgrounded
@@ -1023,4 +1067,11 @@ window.onload = () => {
       fetchOtaStatus();
     }
   });
-};
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initDashboard);
+} else {
+  initDashboard();
+}
+window.addEventListener('load', initDashboard);

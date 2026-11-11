@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: CERN-OHL-S-2.0
+# Copyright (c) 2026 Robert Longbottom (@thomaslr)
+# Commercial licensing available — see LICENSE for details.
 """
 MultiBand6-ESP32-AtomicBeacon KiCad PCB & JLCPCB Manufacturing Files Generator
 Creates:

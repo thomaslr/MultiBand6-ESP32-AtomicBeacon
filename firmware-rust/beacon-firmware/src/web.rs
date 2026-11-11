@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2026 Robert Longbottom (@thomaslr)
+// Commercial licensing available — see LICENSE for details.
+
 //! Web Server and REST API Implementation.
 
 use std::collections::VecDeque;
@@ -163,7 +167,7 @@ struct StatusResponse {
 pub fn create_web_server(state: Arc<Mutex<AppState>>) -> Result<EspHttpServer<'static>, EspIOError> {
     let server_config = ServerConfig {
         stack_size: 10240,
-        max_open_sockets: 6,
+        max_open_sockets: 8,
         ..Default::default()
     };
     let mut server = EspHttpServer::new(&server_config)?;
@@ -630,12 +634,15 @@ fn send_binary(
 ) -> Result<(), EspIOError> {
     let accept_encoding = req.header("Accept-Encoding").unwrap_or("");
     let use_gzip = accept_encoding.contains("gzip");
+    let payload = if use_gzip { gz } else { raw };
+    let content_len = payload.len().to_string();
 
     let mut resp = req.into_response(
         200,
         Some("OK"),
         &[
             ("Content-Type", content_type),
+            ("Content-Length", &content_len),
             ("Cache-Control", "no-cache, no-store, must-revalidate"),
             ("Pragma", "no-cache"),
             ("Expires", "0"),
@@ -648,15 +655,7 @@ fn send_binary(
         ],
     )?;
 
-    if use_gzip {
-        for chunk in gz.chunks(2048) {
-            let _ = resp.write_all(chunk);
-        }
-    } else {
-        for chunk in raw.chunks(2048) {
-            let _ = resp.write_all(chunk);
-        }
-    }
+    resp.write_all(payload)?;
     Ok(())
 }
 
@@ -665,18 +664,19 @@ fn send_json(
     status: u16,
     json: &str,
 ) -> Result<(), EspIOError> {
+    let payload = json.as_bytes();
+    let content_len = payload.len().to_string();
     let mut resp = req.into_response(
         status,
         Some(if status == 200 { "OK" } else { "Error" }),
         &[
             ("Content-Type", "application/json"),
+            ("Content-Length", &content_len),
             ("Access-Control-Allow-Origin", "*"),
             ("Cache-Control", "no-cache"),
             ("Connection", "close"),
         ],
     )?;
-    for chunk in json.as_bytes().chunks(2048) {
-        let _ = resp.write_all(chunk);
-    }
+    resp.write_all(payload)?;
     Ok(())
 }

@@ -2,33 +2,67 @@
 
 Copyright (c) 2026 Robert Longbottom (@thomaslr)
 
-This project uses a dual reciprocal copyleft licensing structure to keep the software and hardware open, free, and accessible to makers and tinkerers, while protecting the designs against closed-source commercial exploitation:
+This project uses a dual reciprocal copyleft licensing structure for software and hardware, keeping the project open and free for makers, hobbyists, and open-source/open-hardware builders while preventing closed-source commercial appropriation:
 
 ---
 
 ## 1. Software & Firmware: GNU General Public License v3.0 (GPLv3)
 
-All software source code in this repository — including firmware (`firmware-rust/`), web interface assets (`data/`), and build tooling — is licensed under the **GNU General Public License Version 3 (GPLv3)**.
+All software source code in this repository — including the Rust firmware (`firmware-rust/`), embedded web interface assets (`data/`), web installer (`docs/`), and build/CI tooling (`.github/`) — is licensed under the **GNU General Public License Version 3** (**GPLv3**, SPDX: `GPL-3.0-only`).
 
-* **Permissions:** You may inspect, modify, run, and distribute the firmware freely.
-* **Reciprocal Copyleft:** Any distributed binary or derivative software that uses or modifies this code must also provide its complete source code under the GPLv3.
+* **Permissions:** Anyone may study, modify, run, and distribute the software (for personal, educational, or commercial purposes) under the terms of the GPLv3.
+* **Reciprocal Copyleft:** Any distributed binary, modified version, or derivative software must be licensed under the GPLv3 and accompanied by its complete corresponding source code.
 * **Full License Text:** See [`LICENSES/GPL-3.0.txt`](LICENSES/GPL-3.0.txt).
 
 ---
 
-## 2. Hardware & PCB Designs: CERN Open Hardware Licence v2 — Strongly Reciprocal (CERN-OHL-S v2)
+## 2. Hardware, PCB & Enclosure Designs: CERN Open Hardware Licence v2 — Strongly Reciprocal (CERN-OHL-S v2)
 
-All hardware design files — including KiCad schematics, PCB layouts, Gerber/drill manufacturing archives, Bill of Materials (`bom.csv`), centroid files (`positions.csv`), and mechanical documentation in `pcb/` — are licensed under the **CERN Open Hardware Licence Version 2 - Strongly Reciprocal (CERN-OHL-S v2)**.
+All hardware and mechanical design files in this repository — including KiCad schematics, PCB layouts, layout generator scripts (`make_pcb.py`), Gerber/drill manufacturing archives, Bills of Materials (`bom.csv`), pick-and-place centroid files (`positions.csv`), and breadboard documentation in `pcb/`, as well as parametric OpenSCAD sources (`.scad`) and 3D-printable STL models in `enclosure/` — are licensed under the **CERN Open Hardware Licence Version 2 - Strongly Reciprocal** (**CERN-OHL-S v2**, SPDX: `CERN-OHL-S-2.0`).
 
-* **Permissions:** Anyone may study, manufacture, assemble, and modify the hardware designs for personal or educational use.
-* **Reciprocal Copyleft:** If you distribute, sell, or manufacture hardware products based on these designs (or any modifications/derivatives thereof), you must make the complete, editable source hardware design files (schematics, layouts, PCB files) freely and publicly available under the CERN-OHL-S v2.
+* **Permissions:** Anyone may study, modify, manufacture, assemble, and distribute hardware products based on these designs (for personal, educational, or commercial purposes) under the terms of the CERN-OHL-S v2.
+* **Reciprocal Copyleft:** If you convey or distribute physical hardware products or design files based on these designs (whether unmodified or modified/derivative), you must make the Complete Source (schematics, PCB layouts, CAD files, scripts, BOMs, and documentation) available under the CERN-OHL-S v2 and preserve all required notices.
 * **Full License Text:** See [`LICENSES/CERN-OHL-S-v2.txt`](LICENSES/CERN-OHL-S-v2.txt).
 
 ---
 
-## 3. Commercial Licensing Available
+## 3. Commercial License Available
 
-If you or your organization wish to manufacture, sell pre-assembled devices, redistribute, or integrate this design (firmware, hardware, or derivatives) into a proprietary, closed-source commercial product without being subject to the reciprocal copyleft requirements of the **GPLv3** or **CERN-OHL-S v2**, a commercial license agreement is available directly from the copyright holder.
+If you or your organization wish to manufacture, sell pre-assembled devices or kits, redistribute, or integrate this design (firmware, hardware, enclosure, or derivatives) into a proprietary or closed-source commercial product without being subject to the reciprocal copyleft source-sharing requirements of the **GPLv3** or **CERN-OHL-S v2**, a separate commercial license is available directly from the copyright holder.
 
-For commercial licensing inquiries, bulk turnkey production rights, or custom hardware engineering:
+For commercial licensing inquiries, OEM/bulk manufacturing rights, or custom hardware engineering:
 * **Contact:** Robert Longbottom via GitHub [@thomaslr](https://github.com/thomaslr)
+
+---
+
+## 4. Third-Party Notices & Attributions
+
+This project incorporates or adapts the following third-party open-source works (all compatible with the licensing above):
+
+1. **Time Signal Protocols & Calendar Algorithms (`firmware-rust/beacon-core/src/protocols.rs`, `datetime.rs`):**
+   Adapted from [timestation](https://github.com/kangtastic/timestation) by **James Seo**, licensed under the **MIT License**:
+
+   ```text
+   Copyright (c) 2023 James Seo <james@equiv.tech>
+
+   Permission is hereby granted, free of charge, to any person obtaining a copy
+   of this software and associated documentation files (the "Software"), to deal
+   in the Software without restriction, including without limitation the rights
+   to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the Software is
+   furnished to do so, subject to the following conditions:
+
+   The above copyright notice and this permission notice shall be included in all
+   copies or substantial portions of the Software.
+
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+   AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+   SOFTWARE.
+   ```
+
+2. **Gregorian Date Calculations:** Based on Howard Hinnant's public-domain civil-from-days / days-from-civil calendar algorithms.
+3. **ESP-IDF & Rust Ecosystem Dependencies:** Built with `esp-idf-svc`, `esp-idf-hal`, `esp-idf-sys`, `serde`, and related crates under their respective open-source licenses (`Apache-2.0` / `MIT`).

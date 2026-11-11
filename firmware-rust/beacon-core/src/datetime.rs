@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2026 Robert Longbottom (@thomaslr)
+// Commercial licensing available — see LICENSE for details.
+
 //! Date and time calendar utility functions for atomic time signal encoding.
 //!
 //! Adapted from timestation (https://github.com/kangtastic/timestation)

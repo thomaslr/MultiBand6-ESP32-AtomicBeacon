@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2026 Robert Longbottom (@thomaslr)
+// Commercial licensing available — see LICENSE for details.
+
 //! MultiBand 6 ESP32 Beacon Core Library
 //!
 //! Provides atomic clock radio protocols (BPC, WWVB, MSF, DCF77, JJY),

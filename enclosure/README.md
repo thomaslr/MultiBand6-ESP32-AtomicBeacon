@@ -49,3 +49,13 @@ Designed to house the **58×36 mm SMT Carrier Board** (or standard ESP32-C3 Supe
   * Print `enclosure_base.stl` flat on its bottom.
   * Print `enclosure_lid.stl` flat with the top surface touching the build plate.
   * Print `table_stand.stl` flat on its bottom plate.
+
+---
+
+## 📜 Enclosure License & Commercial Terms
+
+All mechanical CAD sources (`.scad`), exported 3D models (`.stl`), and enclosure documentation in this directory are licensed under the **[CERN Open Hardware Licence Version 2 - Strongly Reciprocal (CERN-OHL-S v2)](../LICENSES/CERN-OHL-S-v2.txt)** (`CERN-OHL-S-2.0`).
+
+* **Open Hardware Permissions:** Anyone may inspect, modify, 3D-print, and distribute enclosures (for personal, educational, or commercial use) in accordance with the CERN-OHL-S v2.
+* **Reciprocal Copyleft:** If you convey or distribute manufactured enclosures or modified CAD designs, you must make the Complete Source (`.scad` files and modifications) publicly available under the CERN-OHL-S v2.
+* **Commercial License Available:** If your organization wishes to manufacture or sell enclosures or turnkey units under proprietary/closed-source terms without CERN-OHL-S v2 source-disclosure obligations, a separate commercial license is available directly from the copyright holder ([@thomaslr](https://github.com/thomaslr)). See [`LICENSE`](../LICENSE) for full details.

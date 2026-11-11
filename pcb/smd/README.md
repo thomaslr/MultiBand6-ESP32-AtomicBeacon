@@ -117,3 +117,9 @@ All 11 SMD parts below are **JLCPCB Basic Components** ($0.00 part-loading fee):
    * Upload `positions.csv` as the **CPL (Pick-and-Place)** file.
    * All 11 SMD parts are automatically assigned as **Basic Parts** ($0.00 setup fees).
    * Confirm the 3D preview alignment and place your order!
+
+---
+
+## 📜 Hardware License
+
+Licensed under the **[CERN Open Hardware Licence Version 2 - Strongly Reciprocal (CERN-OHL-S v2)](../../LICENSES/CERN-OHL-S-v2.txt)** (`CERN-OHL-S-2.0`). **Commercial License Available** for proprietary/closed-source manufacturing — see [`LICENSE`](../../LICENSE).

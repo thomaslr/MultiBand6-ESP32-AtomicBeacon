@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: CERN-OHL-S-2.0
+// Copyright (c) 2026 Robert Longbottom (@thomaslr)
+// Commercial licensing available — see LICENSE for details.
+
 // =============================================================================
 // MultiBand 6 ESP32 Beacon — Parametric Enclosure Base
 // Multi-Mount Support: Screws, Cable Ties, 3M VHB/Command Tape, Attachable Stand

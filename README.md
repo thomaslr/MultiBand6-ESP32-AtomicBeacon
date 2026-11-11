@@ -617,13 +617,13 @@ espflash save-image --merge --chip esp32c3 \
 
 ## 12. License & Commercial Use
 
-This project uses a dual reciprocal copyleft licensing structure to protect the software and hardware while keeping it 100% free for makers and hobbyists:
+This project uses a dual reciprocal copyleft licensing structure so makers and builders stay free to build, modify, and share, while protecting the designs against closed-source commercial appropriation:
 
-* **Firmware & Software:** Licensed under the **[GNU General Public License v3.0 (GPLv3)](LICENSES/GPL-3.0.txt)**.
-* **Hardware & PCB Designs:** Licensed under the **[CERN Open Hardware Licence Version 2 - Strongly Reciprocal (CERN-OHL-S v2)](LICENSES/CERN-OHL-S-v2.txt)**.
+* **Firmware, Web UI & Tooling (`firmware-rust/`, `data/`, `docs/`):** Licensed under the **[GNU General Public License v3.0 (GPLv3)](LICENSES/GPL-3.0.txt)** (`GPL-3.0-only`).
+* **Hardware, PCB & Enclosure Designs (`pcb/`, `enclosure/`):** Licensed under the **[CERN Open Hardware Licence Version 2 - Strongly Reciprocal (CERN-OHL-S v2)](LICENSES/CERN-OHL-S-v2.txt)** (`CERN-OHL-S-2.0`).
 
-### Commercial Licensing Available
-If you or your organization wish to manufacture, sell pre-assembled devices, redistribute, or integrate this design (firmware, hardware, or derivatives) into a proprietary, closed-source commercial product without being subject to the reciprocal copyleft requirements of the **GPLv3** or **CERN-OHL-S v2**, commercial licensing agreements are available.
+### Commercial License Available
+Anyone may build, modify, or distribute this project under the reciprocal copyleft terms of **GPLv3** and **CERN-OHL-S v2** (which require making complete source code and hardware design files available under the same licenses). If you or your organization wish to manufacture, sell pre-assembled devices or kits, redistribute, or integrate this design (firmware, hardware, or enclosure) into a **proprietary, closed-source commercial product** without those copyleft source-disclosure obligations, a separate commercial license is available.
 
-Please contact **Robert Longbottom** via GitHub [@thomaslr](https://github.com/thomaslr) to discuss commercial terms. See the [LICENSE](LICENSE) file for complete details.
+Please contact **Robert Longbottom** via GitHub [@thomaslr](https://github.com/thomaslr) to discuss commercial terms. See the [`LICENSE`](LICENSE) file for complete details and third-party attributions.
 

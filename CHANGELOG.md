@@ -5,6 +5,17 @@ All notable changes to the MultiBand 6 ESP32 Atomic Beacon project will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.12] - 2026-11-11
+
+### Fixed
+- **Single-Write HTTP Asset Delivery & Content-Length Headers (`web.rs`)**: Replaced 2048-byte HTTP chunked loops in `send_binary` and `send_json` (which silently ignored socket write errors and truncated `app.js` / `style.css` under Wi-Fi Modem Sleep or marginal signal conditions) with single-write `Content-Length` responses and increased `max_open_sockets` (8) alongside `CONFIG_LWIP_MAX_SOCKETS=16`.
+- **Non-Blocking Dashboard Startup & Timeout Resilience (`data/app.js`, `data/index.html`, `data/sw.js`)**:
+  - Replaced `window.onload` initialization with immediate `DOMContentLoaded` startup and an inline `switchTab()` fallback so navigation tabs and live clocks initialize immediately without waiting for slow sub-resources.
+  - Added `AbortController` timeouts (6s) to all dashboard API fetches (`/api/status`, `/api/config`, `/api/ota/status`, `/api/logs`) so a stalled socket in a Wi-Fi dead zone never freezes the adaptive polling loop.
+  - Defined missing `formatDuration()` helper and `appStatus` reference in `data/app.js` that previously threw a `ReferenceError` when opening the Diagnostics tab.
+  - Removed the Service Worker (`sw.js`) pass-through `fetch` interceptor that returned `undefined` on uncached navigation failures and doubled request pressure on the single-threaded ESP32 HTTP server.
+- **Automatic Wi-Fi Dead-Zone Reconnection (`main.rs`)**: Added periodic station link monitoring in the main operational loop to automatically trigger `esp_wifi_connect()` when the ESP32-C3 returns from a Wi-Fi dead zone while in standby.
+
 ## [0.1.11] - 2026-11-10
 
 ### Fixed

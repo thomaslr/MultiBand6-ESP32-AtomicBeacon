@@ -99,8 +99,8 @@ pcb/
 
 ## 📜 Hardware License & Commercial Terms
 
-All hardware design files, schematics, PCB layouts, Gerbers, and BOMs in this directory are licensed under the **[CERN Open Hardware Licence Version 2 - Strongly Reciprocal (CERN-OHL-S v2)](../LICENSES/CERN-OHL-S-v2.txt)**.
+All hardware design files — schematics, PCB layouts, generator scripts (`make_pcb.py`), Gerbers/drills, BOMs, centroid files, and breadboard documentation in this directory — are licensed under the **[CERN Open Hardware Licence Version 2 - Strongly Reciprocal (CERN-OHL-S v2)](../LICENSES/CERN-OHL-S-v2.txt)** (`CERN-OHL-S-2.0`).
 
-* **Free for Makers & Hobbyists:** You may inspect, modify, order, and assemble boards for personal or educational use.
-* **Reciprocal Copyleft:** Any commercial distribution or manufacturing of derivative or modified hardware designs must publish the complete corresponding hardware source files under the CERN-OHL-S v2.
-* **Commercial Licensing:** If your organization wishes to manufacture or sell pre-assembled devices under proprietary/closed-source terms, commercial licenses are available directly from the copyright holder ([@thomaslr](https://github.com/thomaslr)). See [`LICENSE`](../LICENSE) for details.
+* **Open Hardware Permissions:** Anyone may inspect, modify, manufacture, assemble, and distribute boards (for personal, educational, or commercial use) in accordance with the CERN-OHL-S v2.
+* **Reciprocal Copyleft:** If you convey or distribute manufactured boards or modified hardware designs, you must make the Complete Source (schematics, PCB layouts, scripts, BOMs) publicly available under the CERN-OHL-S v2.
+* **Commercial License Available:** If your organization wishes to manufacture or sell pre-assembled devices under proprietary/closed-source terms without CERN-OHL-S v2 source-disclosure obligations, a separate commercial license is available directly from the copyright holder ([@thomaslr](https://github.com/thomaslr)). See [`LICENSE`](../LICENSE) for full details.

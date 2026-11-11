@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: GPL-3.0-only
+// Copyright (c) 2026 Robert Longbottom (@thomaslr)
+// Commercial licensing available — see LICENSE for details.
+
 //! Network Time Protocol (NTP) Time Synchronization.
 
 use esp_idf_svc::sntp::{EspSntp, SntpConf, SyncMode};
