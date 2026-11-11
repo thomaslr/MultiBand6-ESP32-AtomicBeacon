@@ -615,18 +615,15 @@ espflash save-image --merge --chip esp32c3 \
 
 ---
 
-## 12. License & Commercial Inquiries
+## 12. License & Commercial Use
 
-This project is released under a **Dual-License / Source-Available Model**:
+This project uses a dual reciprocal copyleft licensing structure to protect the software and hardware while keeping it 100% free for makers and hobbyists:
 
-* **🛠️ Hardware & PCB Layouts (`pcb/`):** Licensed under **[Creative Commons Attribution-NonCommercial-ShareAlike 4.0 (CC BY-NC-SA 4.0)](https://creativecommons.org/licenses/by-nc-sa/4.0/)**.
-* **💻 Firmware & Software (`firmware-rust/`, `data/`):** Licensed under the **[PolyForm Noncommercial License 1.0.0](https://polyformproject.org/licenses/noncommercial/1.0.0)**.
+* **Firmware & Software:** Licensed under the **[GNU General Public License v3.0 (GPLv3)](LICENSES/GPL-3.0.txt)**.
+* **Hardware & PCB Designs:** Licensed under the **[CERN Open Hardware Licence Version 2 - Strongly Reciprocal (CERN-OHL-S v2)](LICENSES/CERN-OHL-S-v2.txt)**.
 
-### For Makers & Hobbyists (Free)
-You are **100% free** to build, order personal PCBs, solder, flash, modify, and tinker with this project for personal, educational, and non-commercial home use.
+### Commercial Licensing Available
+If you or your organization wish to manufacture, sell pre-assembled devices, redistribute, or integrate this design (firmware, hardware, or derivatives) into a proprietary, closed-source commercial product without being subject to the reciprocal copyleft requirements of the **GPLv3** or **CERN-OHL-S v2**, commercial licensing agreements are available.
 
-### For Commercial & For-Profit Use
-Manufacturing, distributing, or selling pre-assembled units, PCB kits, pre-flashed devices, or incorporating this design into commercial products or services is **strictly prohibited without a separate commercial license**.
-
-For full legal terms and commercial licensing inquiries, please see **[LICENSE.md](LICENSE.md)**.
+Please contact **Robert Longbottom** via GitHub [@thomaslr](https://github.com/thomaslr) to discuss commercial terms. See the [LICENSE](LICENSE) file for complete details.
 

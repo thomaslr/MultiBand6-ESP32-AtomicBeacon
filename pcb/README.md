@@ -94,3 +94,13 @@ pcb/
    * Go to [`pcb/breadboard/`](breadboard/).
    * Open [`breadboard_layout.html`](breadboard/breadboard_layout.html) in your browser.
    * Follow the step-by-step row mapping to wire up the circuit in under 5 minutes without soldering.
+
+---
+
+## 📜 Hardware License & Commercial Terms
+
+All hardware design files, schematics, PCB layouts, Gerbers, and BOMs in this directory are licensed under the **[CERN Open Hardware Licence Version 2 - Strongly Reciprocal (CERN-OHL-S v2)](../LICENSES/CERN-OHL-S-v2.txt)**.
+
+* **Free for Makers & Hobbyists:** You may inspect, modify, order, and assemble boards for personal or educational use.
+* **Reciprocal Copyleft:** Any commercial distribution or manufacturing of derivative or modified hardware designs must publish the complete corresponding hardware source files under the CERN-OHL-S v2.
+* **Commercial Licensing:** If your organization wishes to manufacture or sell pre-assembled devices under proprietary/closed-source terms, commercial licenses are available directly from the copyright holder ([@thomaslr](https://github.com/thomaslr)). See [`LICENSE`](../LICENSE) for details.
