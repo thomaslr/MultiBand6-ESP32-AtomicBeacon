@@ -1,6 +1,6 @@
 [package]
 name = "beacon-core"
-version = "0.1.14"
+version = "0.1.15"
 edition = "2021"
 description = "Hardware-independent time signal protocols, calendar maths, and configuration for MultiBand 6 ESP32 Beacon"
 license = "GPL-3.0-only"

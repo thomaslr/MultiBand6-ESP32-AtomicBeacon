@@ -5,6 +5,11 @@ All notable changes to the MultiBand 6 ESP32 Atomic Beacon project will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.15] - 2026-11-11
+
+### Changed
+- **Cardiac "Thump-Thump" 10-Second Wi-Fi Heartbeat (`led.rs`)**: Updated the 10-second Wi-Fi connected standby indicator to a classic double-pulse heartbeat pattern (`100 ms` ON, `120 ms` OFF, `100 ms` ON) at 50% brightness (`128 / 256` PWM duty), clearly distinguishing it from the single 2-second pulse used when Wi-Fi is lost.
+
 ## [0.1.14] - 2026-11-11
 
 ### Added

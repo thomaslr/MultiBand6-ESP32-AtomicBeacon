@@ -6,7 +6,7 @@
 //!
 //! ESP32-C3 SuperMini Status LED is located on GPIO 8 (Active LOW).
 //! Patterns:
-//! - Standby (Wi-Fi Connected): 10.0s heartbeat (single 120ms pulse at 50% brightness every 10 seconds; frozen HIGH otherwise)
+//! - Standby (Wi-Fi Connected): 10.0s cardiac "thump-thump" double-pulse heartbeat (100ms ON, 120ms OFF, 100ms ON at 50% brightness every 10 seconds; frozen HIGH otherwise)
 //! - Standby (Wi-Fi Lost / Disconnected): 2.0s link-loss indicator (single 120ms pulse at 50% brightness every 2 seconds)
 //! - Button Start ACK: 3 rapid crisp blips (100ms ON / 100ms OFF x 3 = 600ms) then transitions to Breathing
 //! - Button Stop ACK: 2 deliberate blinks (200ms ON / 150ms OFF x 2 = 700ms) then Standby
@@ -179,15 +179,18 @@ impl StatusLed {
                             *p = LedPattern::Breathing;
                         }
                     } else {
-                        // Standby heartbeat:
-                        // - Wi-Fi connected: single pulse every 10s at half brightness (128/256)
-                        // - Wi-Fi lost: single pulse every 2s at half brightness (128/256)
-                        let period_ms = if wifi_connected {
-                            LED_WIFI_CONNECTED_PERIOD_MS
+                        // Standby status indicators (50% brightness = 128/256):
+                        // - Wi-Fi connected: "thump-thump" double pulse every 10s (0..100ms ON, 100..220ms OFF, 220..320ms ON)
+                        // - Wi-Fi lost: single pulse every 2s (0..120ms ON)
+                        let is_pulse_on = if wifi_connected {
+                            let phase_ms = now_ms % LED_WIFI_CONNECTED_PERIOD_MS;
+                            matches!(phase_ms, 0..=99 | 220..=319)
                         } else {
-                            LED_WIFI_LOST_PERIOD_MS
+                            let phase_ms = now_ms % LED_WIFI_LOST_PERIOD_MS;
+                            phase_ms < LED_PULSE_DURATION_MS
                         };
-                        if (now_ms % period_ms) < LED_PULSE_DURATION_MS {
+
+                        if is_pulse_on {
                             let duty = 256u32.saturating_sub(LED_HALF_BRIGHTNESS);
                             ledc_set_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1, duty);
                             ledc_update_duty(ledc_mode_t_LEDC_LOW_SPEED_MODE, ledc_channel_t_LEDC_CHANNEL_1);
