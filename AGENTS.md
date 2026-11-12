@@ -22,8 +22,13 @@
   - Antenna carrier generated via hardware LEDC PWM on GPIO 1.
   - mDNS responder active at `http://timestation.local`.
 
-## 4. Web Interface & Provisioning
+## 4. Web Interface, HTTP Streaming & Multi-Client Concurrency (PERMANENT RULE)
 - Embedded web assets in `data/` (`index.html`, `setup.html`, `app.js`, `style.css`, `favicon.svg`) pre-compressed with Gzip at build time.
+- **Chunked HTTP Streaming (`send_binary` / `send_json`)**:
+  - **CRITICAL**: Always stream HTTP response bodies in **$\le$ 1024-byte chunks** (`for chunk in payload.chunks(1024) { resp.write_all(chunk)?; }`). Never pass a multi-kilobyte slice (such as `index.html.gz` or `app.js.gz`) to `resp.write_all()` in a single call, as `httpd_resp_send_chunk` over a single ESP32-C3 lwIP TCP MSS (~1436 bytes) will stall after the first TCP segment (~1307 bytes) and block the single-threaded `httpd` worker until timeout.
+  - **NEVER** pass a manual `("Content-Length", ...)` header to `req.into_response(...)` in `esp-idf-svc`, because `EspHttpConnection::write` always uses `Transfer-Encoding: chunked`.
+- **Multi-Client Socket Hygiene**:
+  - Always configure `EspHttpServer` with `lru_purge_enable: true`, `session_timeout: Duration::from_secs(10)`, `so_linger: Some(Duration::from_secs(0))`, and `max_open_sockets: 12` (with `CONFIG_LWIP_MAX_SOCKETS=18` in `sdkconfig.defaults`) combined with `Connection: close` response headers so multiple phones/browsers accessing the device simultaneously never exhaust sockets or hold `TIME_WAIT` connections open.
 - Dedicated Network & Wi-Fi settings page with live signal quality, nearby Wi-Fi scanner, NTP configuration, and credentials reset button.
 - Captive portal detection endpoints (`/hotspot-detect.html`, `/generate_204`, etc.) route directly to the setup portal.
 

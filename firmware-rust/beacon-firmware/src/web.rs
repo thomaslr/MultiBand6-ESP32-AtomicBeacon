@@ -167,7 +167,10 @@ struct StatusResponse {
 pub fn create_web_server(state: Arc<Mutex<AppState>>) -> Result<EspHttpServer<'static>, EspIOError> {
     let server_config = ServerConfig {
         stack_size: 10240,
-        max_open_sockets: 8,
+        max_open_sockets: 12,
+        session_timeout: std::time::Duration::from_secs(10),
+        lru_purge_enable: true,
+        so_linger: Some(std::time::Duration::from_secs(0)),
         ..Default::default()
     };
     let mut server = EspHttpServer::new(&server_config)?;
@@ -513,7 +516,10 @@ pub fn create_setup_server(
 ) -> Result<EspHttpServer<'static>, EspIOError> {
     let server_config = ServerConfig {
         stack_size: 10240,
-        max_open_sockets: 6,
+        max_open_sockets: 10,
+        session_timeout: std::time::Duration::from_secs(10),
+        lru_purge_enable: true,
+        so_linger: Some(std::time::Duration::from_secs(0)),
         ..Default::default()
     };
     let mut server = EspHttpServer::new(&server_config)?;
@@ -637,14 +643,17 @@ fn send_binary(
     let accept_encoding = req.header("Accept-Encoding").unwrap_or("");
     let use_gzip = accept_encoding.contains("gzip");
     let payload = if use_gzip { gz } else { raw };
-    let content_len = payload.len().to_string();
 
+    // IMPORTANT: Never pass a manual `Content-Length` header here because `esp-idf-svc`'s
+    // `EspHttpConnection::write` always calls `httpd_resp_send_chunk` (Transfer-Encoding: chunked),
+    // and `initiate_response` ignores `Content-Length`. Furthermore, always write in <= 1024-byte
+    // slices so a single chunk never exceeds the ESP32-C3 lwIP TCP MSS (~1436 bytes), preventing
+    // multi-packet socket stalls on weak 2.4 GHz links.
     let mut resp = req.into_response(
         200,
         Some("OK"),
         &[
             ("Content-Type", content_type),
-            ("Content-Length", &content_len),
             ("Cache-Control", "no-cache, no-store, must-revalidate"),
             ("Pragma", "no-cache"),
             ("Expires", "0"),
@@ -657,7 +666,9 @@ fn send_binary(
         ],
     )?;
 
-    resp.write_all(payload)?;
+    for chunk in payload.chunks(1024) {
+        resp.write_all(chunk)?;
+    }
     Ok(())
 }
 
@@ -667,18 +678,18 @@ fn send_json(
     json: &str,
 ) -> Result<(), EspIOError> {
     let payload = json.as_bytes();
-    let content_len = payload.len().to_string();
     let mut resp = req.into_response(
         status,
         Some(if status == 200 { "OK" } else { "Error" }),
         &[
             ("Content-Type", "application/json"),
-            ("Content-Length", &content_len),
             ("Access-Control-Allow-Origin", "*"),
             ("Cache-Control", "no-cache"),
             ("Connection", "close"),
         ],
     )?;
-    resp.write_all(payload)?;
+    for chunk in payload.chunks(1024) {
+        resp.write_all(chunk)?;
+    }
     Ok(())
 }
