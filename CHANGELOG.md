@@ -5,6 +5,11 @@ All notable changes to the MultiBand 6 ESP32 Atomic Beacon project will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.18] - 2026-11-12
+
+### Changed
+- Set lwIP TCP MSS to 536 so web responses avoid full-MTU 1440-byte Wi-Fi frames that were dropped on the weak 2.4 GHz link and stalled the single-threaded HTTP server. Added scripts/release_ota.sh.
+
 ## [0.1.15] - 2026-11-11
 
 ### Changed

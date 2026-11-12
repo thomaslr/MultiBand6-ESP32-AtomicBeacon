@@ -21,6 +21,10 @@ CONFIG_HTTPD_MAX_REQ_HDR_LEN=1024
 CONFIG_HTTPD_MAX_URI_LEN=512
 CONFIG_LWIP_MAX_SOCKETS=18
 
+# Small TCP segments (MSS 536 -> ~590 byte Wi-Fi frames). Full-MTU 1440-byte frames were being
+# dropped on the weak 2.4 GHz link, stalling the single-threaded httpd worker for 5s per response.
+CONFIG_LWIP_TCP_MSS=536
+
 # Watchdog timeout
 CONFIG_ESP_TASK_WDT_TIMEOUT_S=10
 
