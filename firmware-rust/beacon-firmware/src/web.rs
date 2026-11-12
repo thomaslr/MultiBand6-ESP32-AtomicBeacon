@@ -324,7 +324,9 @@ pub fn create_web_server(state: Arc<Mutex<AppState>>) -> Result<EspHttpServer<'s
                 let _ = sntp.sync(std::time::Duration::from_secs(3));
             }
         }
-        app.carrier.start(&app.config, None, "web");
+        let mut cur_cfg = app.config.clone();
+        cur_cfg.carousel_enabled = false;
+        app.carrier.start(&cur_cfg, Some(15 * 60), "web");
         send_json(req, 200, r#"{"status":"transmitting"}"#)
     })?;
 
