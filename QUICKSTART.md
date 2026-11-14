@@ -23,7 +23,7 @@ You do **not** need to install Rust, Python, Git, or any software. Everything ca
 
 ## 📥 2. Download the Factory Firmware
 
-Go to the **[Latest GitHub Releases](https://github.com/robertlongbottom/MultiBand6-ESP32-AtomicBeacon/releases/latest)** and download:
+Go to the **[Latest GitHub Releases](https://github.com/thomaslr/MultiBand6-ESP32-AtomicBeacon/releases/latest)** and download:
 
 $$\mathbf{multiband6\text{-}beacon\text{-}factory.bin}$$
 
@@ -40,7 +40,7 @@ $$\mathbf{multiband6\text{-}beacon\text{-}factory.bin}$$
 
 If you are using **Google Chrome** or **Microsoft Edge**, you don't even need to download files:
 
-👉 **[Open the TimeStation 1-Click Web Installer](https://robertlongbottom.github.io/MultiBand6-ESP32-AtomicBeacon/)**
+👉 **[Open the TimeStation 1-Click Web Installer](https://thomaslr.github.io/MultiBand6-ESP32-AtomicBeacon/)**
 
 1. Plug your ESP32-C3 SuperMini into USB.
 2. Put the board into Download Boot Mode: Hold **`BOOT`** $\rightarrow$ tap **`RST`** $\rightarrow$ release **`BOOT`**.

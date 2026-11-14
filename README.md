@@ -309,7 +309,7 @@ For new users setting up an **ESP32-C3 SuperMini** for the first time, you do **
 
 ### 📦 Where to Get the Firmware Binaries
 
-Every GitHub release provides two distinct binaries on the **[Releases Page](https://github.com/robertlongbottom/MultiBand6-ESP32-AtomicBeacon/releases)**:
+Every GitHub release provides two distinct binaries on the **[Releases Page](https://github.com/thomaslr/MultiBand6-ESP32-AtomicBeacon/releases)**:
 
 | Binary File | Flash Address | Purpose & Usage |
 | :--- | :---: | :--- |
@@ -340,7 +340,7 @@ Compatible with **Google Chrome** and **Microsoft Edge**:
 
 1. Connect your ESP32-C3 SuperMini via USB (data cable).
 2. Put the board into download mode: Hold **`BOOT`** $\rightarrow$ tap **`RST`** $\rightarrow$ release **`BOOT`**.
-3. Open the **[TimeStation 1-Click Web Installer](https://robertlongbottom.github.io/MultiBand6-ESP32-AtomicBeacon/)**.
+3. Open the **[TimeStation 1-Click Web Installer](https://thomaslr.github.io/MultiBand6-ESP32-AtomicBeacon/)**.
 4. Click **"⚡ Install TimeStation Beacon"**, select your serial port, and wait for flashing to reach 100%.
 5. The installer will even prompt you to configure your Wi-Fi directly in the browser!
 
@@ -353,7 +353,7 @@ Compatible with **Google Chrome** and **Microsoft Edge**:
 3. Open the **[Espressif Web Flasher (esptool-js)](https://espressif.github.io/esptool-js/)** or **[Adafruit WebSerial ESPTool](https://adafruit.github.io/Adafruit_WebSerial_ESPTool/)**.
 4. Set Baud Rate to **`460800`** and click **Connect**. Choose your ESP32-C3 port.
 5. In the file upload section:
-   * **File:** Select `multiband6-beacon-factory.bin` downloaded from [Releases](https://github.com/robertlongbottom/MultiBand6-ESP32-AtomicBeacon/releases).
+   * **File:** Select `multiband6-beacon-factory.bin` downloaded from [Releases](https://github.com/thomaslr/MultiBand6-ESP32-AtomicBeacon/releases).
    * **Flash Address:** **`0x0`** (or `0x0000`).
 6. Click **Program / Flash**.
 7. Once finished, press the **`RST`** button once to boot the beacon!

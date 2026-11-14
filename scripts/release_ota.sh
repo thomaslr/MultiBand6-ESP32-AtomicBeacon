@@ -53,7 +53,19 @@ fi
 node --check data/app.js
 (cd firmware-rust && cargo test --package beacon-core --target aarch64-apple-darwin)
 
-# 3. Commit, tag, push (push triggers the GitHub release workflow)
+# 3. Build OTA & merged factory images (also updates docs/ for GitHub Pages web installer)
+(cd firmware-rust/beacon-firmware && cargo build --release)
+BIN="/tmp/multiband6-beacon-$VERSION.bin"
+espflash save-image --chip esp32c3 \
+  --partition-table firmware-rust/beacon-firmware/partitions.csv \
+  firmware-rust/target/riscv32imc-esp-espidf/release/beacon-firmware "$BIN"
+espflash save-image --merge --skip-padding --chip esp32c3 \
+  --partition-table firmware-rust/beacon-firmware/partitions.csv \
+  firmware-rust/target/riscv32imc-esp-espidf/release/beacon-firmware \
+  docs/multiband6-beacon-factory.bin
+ls -lh "$BIN" docs/multiband6-beacon-factory.bin
+
+# 4. Commit, tag, push (push triggers the GitHub release workflow)
 if [ "$PUSH" = 1 ]; then
   git add -A
   git commit -m "chore(release): bump firmware to v$VERSION"
@@ -62,13 +74,6 @@ if [ "$PUSH" = 1 ]; then
   git push origin "v$VERSION"
 fi
 
-# 4. Build OTA image
-(cd firmware-rust/beacon-firmware && cargo build --release)
-BIN="/tmp/multiband6-beacon-$VERSION.bin"
-espflash save-image --chip esp32c3 \
-  --partition-table firmware-rust/beacon-firmware/partitions.csv \
-  firmware-rust/target/riscv32imc-esp-espidf/release/beacon-firmware "$BIN"
-ls -lh "$BIN"
 [ "$FLASH" = 1 ] || { echo "Built $BIN"; exit 0; }
 
 # 5. OTA flash (retry: the device drops connections on weak Wi-Fi)
