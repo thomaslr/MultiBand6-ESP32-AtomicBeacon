@@ -5,6 +5,11 @@ All notable changes to the MultiBand 6 ESP32 Atomic Beacon project will be docum
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.19] - 2026-11-14
+
+### Changed
+- Set default Wi-Fi radio settings to +19.5 dBm (tx_power: 78), Modem Sleep: On (modem_sleep: true), and 20 MHz Bandwidth: On (force_20mhz: true) on first install while preserving NVS-stored values across reboots and OTA reflashes.
+
 ## [0.1.18] - 2026-11-12
 
 ### Changed
