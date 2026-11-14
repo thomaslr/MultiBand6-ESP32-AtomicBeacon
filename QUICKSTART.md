@@ -90,6 +90,10 @@ espflash write-bin 0x0 multiband6-beacon-factory.bin
 
 ## 📶 4. Connect to Wi-Fi (Setup Portal)
 
+> [!IMPORTANT]
+> **Why Wi-Fi & NTP are Essential:**  
+> The ESP32-C3 requires an active 2.4 GHz Wi-Fi connection to discipline its clock via Network Time Protocol (NTP) servers (`pool.ntp.org`). MultiBand 6 protocols transmit live date and time frames down to the exact second. The beacon must be positioned within range of your home Wi-Fi network so it can synchronize time on boot and before nightly broadcasts.
+
 When first powered on, the beacon creates its own Wi-Fi hotspot:
 
 1. On your smartphone or laptop, open Wi-Fi settings and connect to:

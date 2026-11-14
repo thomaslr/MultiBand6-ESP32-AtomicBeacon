@@ -48,6 +48,9 @@ mod tests {
         assert_eq!(def.wifi.tx_power, 78);
         assert!(def.wifi.modem_sleep);
         assert!(def.wifi.force_20mhz);
+        assert_eq!(def.broadcast_hour, 0);
+        assert_eq!(def.broadcast_minute, 55);
+        assert_eq!(def.broadcast_duration_min, 80);
 
         // Verify NVS JSON round-trip preserves user overrides
         let mut custom = def.clone();

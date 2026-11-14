@@ -1,10 +1,23 @@
-# MultiBand6-ESP32-AtomicBeacon
+# MultiBand6-ESP32-AtomicBeacon: Hardware Atomic Clock Simulator
 
-An open-hardware, low-power near-field radio transmitter built on the **ESP32-C3-Mini** to simulate LF time signal broadcasts (**BPC, WWVB, MSF, DCF77, JJY40, JJY60**) for synchronizing radio-controlled ("atomic") clocks and wristwatches over a localized range (approx. 0.5 m to 1.0 m).
+An open-hardware, low-power near-field radio transmitter built on the **ESP32-C3-Mini** with custom PCB designs, resonant magnetic antenna, 3D enclosure, and embedded web UI. Simulates authentic LF radio time signal broadcasts (**BPC, WWVB, MSF, DCF77, JJY40, JJY60**) to synchronize radio-controlled ("atomic") wristwatches and clocks over a localized range (~0.3 m to 1.0 m).
 
-Why?? - I have a collection of multiband6 casios but I live in Singapore were there is no signal from any of the time towers. This device solves that problem by broadcasting the signals locally from a small device next to my bed, about 0.5m from my watches. *(Note: While I use Casio watches as my primary reference because that's what I collect and am familiar with, the beacon broadcasts authentic international radio signals compatible with **every radio-controlled watch**—including **Citizen Eco-Drive**, **Seiko**, **Timex**, **Junghans**, and atomic clocks).*
+### 🏠 Real-World Setup & Confirmed Working
+> **Built and actively in daily operation in Singapore!**  
+> Since Singapore receives no LF signals from any of the official time towers, this device was built to solve that problem. It runs quietly every night on a bedroom nightstand, placed approximately **30 cm from a watch box**, successfully synchronizing a multi-watch collection every single night.
+> 
+> *(Compatible with all radio-controlled timepieces including **Casio G-Shock / Oceanus / Wave Ceptor / Lineage**, **Citizen Eco-Drive**, **Seiko**, **Timex**, **Junghans**, and standalone atomic desk clocks).*
 
-It's still under testing.
+| Assembled Hardware & Antenna | Bedroom Watch Box Deployment | 3 MultiBand 6 Watches Synced |
+| :---: | :---: | :---: |
+| <img src="docs/images/beacon_hardware_assembled.jpg" width="300" alt="Assembled ESP32 Atomic Beacon Hardware" /> | <img src="docs/images/beacon_bedroom_setup.jpg" width="300" alt="Nightstand Setup 30cm from Watch Box" /> | <img src="docs/images/watches_synced_proof.jpg" width="300" alt="Three Synced Casio MultiBand 6 Watches" /> |
+| *Custom 2-layer PCB with ESP32-C3 SuperMini & magnetic inductor antenna.* | *Operational placement ~30 cm from the watch box on the nightstand.* | *Simultaneous sync proof: Casio Wave Ceptor (`GET 1:02`), Lineage Chronograph, and Lineage Ana-Digi.* |
+
+> [!IMPORTANT]
+> **Wi-Fi & Network Time Requirement:**  
+> The beacon does not contain a battery-backed hardware RTC chip. On boot and prior to each broadcast, it connects to your home 2.4 GHz Wi-Fi to fetch sub-second reference time from public NTP atomic clock servers (`pool.ntp.org`).  
+> 
+> **Placement Tip:** Place the beacon in a location with steady Wi-Fi reception (e.g. bedside or near your watch box where home Wi-Fi reaches). If placed in a Wi-Fi-dark dead zone on cold boot, the device cannot obtain the initial atomic epoch, and watch broadcasts/sync buttons will remain locked until time synchronization completes.
 
 > [!TIP]
 > 🚀 **Just want to get your watch syncing tonight?**  

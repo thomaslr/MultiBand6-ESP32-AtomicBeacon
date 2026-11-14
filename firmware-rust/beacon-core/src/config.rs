@@ -66,9 +66,9 @@ impl Default for AppConfig {
             station: TimeStation::Bpc,
             offset_hours: 0,
             schedule_enabled: true,
-            broadcast_hour: 2,
-            broadcast_minute: 0,
-            broadcast_duration_min: 25,
+            broadcast_hour: 0,
+            broadcast_minute: 55,
+            broadcast_duration_min: 80,
             carousel_enabled: false,
             carousel_mask: 0x23, // BPC (0), WWVB (1), JJY60 (5)
             carousel_duration_min: 15,
