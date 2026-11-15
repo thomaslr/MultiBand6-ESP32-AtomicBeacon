@@ -25,7 +25,7 @@ let transmitRemainSec = 0;
 let transmitRemainBaseMs = Date.now();
 let appConfig = null;
 let appStatus = null;
-let currentFirmwareVersion = '0.1.20';
+let currentFirmwareVersion = '0.1.21';
 let latestReleaseData = null;
 let logAutoRefreshInterval = null;
 let statusPollTimer = null;
@@ -1037,6 +1037,86 @@ function copyLogs() {
   }
 }
 
+// --- PWA Installation (Web Install API + beforeinstallprompt fallback) ---
+function initPwaInstall() {
+  const installButton = document.getElementById('btnInstallApp');
+  const installStatus = document.getElementById('installStatus');
+  if (!installButton) return;
+
+  const isStandalone =
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.navigator.standalone === true;
+  if (isStandalone) return;
+
+  const supportsWebInstall = typeof Navigator.prototype.install === 'function';
+  let deferredInstallPrompt;
+
+  const showInstallStatus = (msg) => {
+    if (!installStatus) return;
+    installStatus.textContent = msg;
+    installStatus.hidden = !msg;
+  };
+
+  if (supportsWebInstall) {
+    installButton.hidden = false;
+  }
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredInstallPrompt = event;
+    // Prefer navigator.install() when both mechanisms are available.
+    if (!supportsWebInstall) {
+      installButton.hidden = false;
+    }
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = undefined;
+    installButton.hidden = true;
+    showInstallStatus('TimeStation app installed.');
+  });
+
+  installButton.addEventListener('click', async () => {
+    if (installButton.getAttribute('aria-disabled') === 'true') {
+      return;
+    }
+    // Use aria-disabled instead of disabled so activating the button does not drop focus.
+    installButton.setAttribute('aria-disabled', 'true');
+
+    try {
+      if (supportsWebInstall) {
+        // Call directly from this handler to preserve transient user activation.
+        await navigator.install();
+        showInstallStatus('The app was installed or opened.');
+        installButton.hidden = true;
+      } else if (deferredInstallPrompt) {
+        // Save and clear the single-use event before awaiting the user's choice.
+        const promptEvent = deferredInstallPrompt;
+        deferredInstallPrompt = undefined;
+        await promptEvent.prompt();
+        const { outcome } = await promptEvent.userChoice;
+        showInstallStatus(
+          outcome === 'accepted'
+            ? 'The app was installed.'
+            : 'Installation canceled.'
+        );
+        if (!deferredInstallPrompt) {
+          installButton.hidden = true;
+        }
+      }
+    } catch (error) {
+      if (error && error.name === 'AbortError') {
+        showInstallStatus('Installation was canceled or could not complete.');
+      } else {
+        showInstallStatus('Installation could not start.');
+        console.error('[PWA] Install error:', error);
+      }
+    } finally {
+      installButton.removeAttribute('aria-disabled');
+    }
+  });
+}
+
 // --- Initial Startup ---
 function initDashboard() {
   if (dashboardInitialized) return;
@@ -1044,12 +1124,22 @@ function initDashboard() {
 
   // Register Service Worker for PWA Standalone App support
   if ('serviceWorker' in navigator) {
+    let hadSwController = Boolean(navigator.serviceWorker.controller);
     navigator.serviceWorker.register('/sw.js').then((reg) => {
       reg.update().catch(() => {});
     }).catch((err) => {
       console.warn('[PWA] ServiceWorker registration failed:', err);
     });
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (hadSwController) {
+        window.location.reload();
+      } else {
+        hadSwController = true;
+      }
+    });
   }
+
+  initPwaInstall();
 
   // Prioritize real-time status & clock first so single-threaded ESP32 httpd responds immediately
   pollStatus(); // Initializes state and starts adaptive polling loop (5s active, 15s standby)

@@ -644,6 +644,14 @@ fn send_binary(
     let use_gzip = accept_encoding.contains("gzip");
     let payload = if use_gzip { gz } else { raw };
 
+    // Allow browsers and reverse proxies to cache static icons for 24h to cut concurrent
+    // socket load during PWA launch, while revalidating HTML/JS/CSS/manifest/SW on each visit.
+    let cache_control = if content_type.starts_with("image/") {
+        "public, max-age=86400"
+    } else {
+        "no-cache"
+    };
+
     // IMPORTANT: Never pass a manual `Content-Length` header here because `esp-idf-svc`'s
     // `EspHttpConnection::write` always calls `httpd_resp_send_chunk` (Transfer-Encoding: chunked),
     // and `initiate_response` ignores `Content-Length`. Furthermore, always write in <= 1024-byte
@@ -654,9 +662,7 @@ fn send_binary(
         Some("OK"),
         &[
             ("Content-Type", content_type),
-            ("Cache-Control", "no-cache, no-store, must-revalidate"),
-            ("Pragma", "no-cache"),
-            ("Expires", "0"),
+            ("Cache-Control", cache_control),
             ("Connection", "close"),
             if use_gzip {
                 ("Content-Encoding", "gzip")

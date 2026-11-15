@@ -126,7 +126,15 @@ $$\mathbf{http://timestation.local}$$
 You will see the live status dashboard:
 * **Current Atomic Time:** Disciplined by Stratum-1 NTP.
 * **Active Station & Carousel:** Live frequency, modulation bitstream, and countdown.
-* **Nightly Auto-Broadcast:** Pre-configured for nighttime calibration (default 2:00 AM) while you sleep.
+* **Nightly Auto-Broadcast:** Pre-configured for nighttime calibration (default 12:55 AM for 80 min) while you sleep.
+
+### 📱 Install as an App (PWA)
+TimeStation includes a full Progressive Web App manifest (`manifest.json`), app icons, and a Network-First Service Worker (`sw.js`):
+* **Via HTTPS Reverse Proxy (e.g. Nginx):** Tap the **📲 Install App** button in the dashboard header, Chrome's URL-bar **Install** icon, or Android Chrome **⋮ → Install app** to install a standalone home-screen WebAPK / Chrome desktop window.
+* **Over Local HTTP (`http://timestation.local`):**
+  * **Desktop Chrome:** Click **⋮ → Cast, save, and share → Install page as app…** (runs in its own Chrome app window), or allow `http://timestation.local` under `chrome://flags/#unsafely-treat-insecure-origin-as-secure` for full Service Worker + native install support.
+  * **Android Chrome:** Tap **⋮ → Add to home screen**, or add `http://timestation.local` (or your device IP) to `chrome://flags/#unsafely-treat-insecure-origin-as-secure` in Chrome on Android for full WebAPK installation.
+  * **iOS Safari:** Tap **Share** $\rightarrow$ **Add to Home Screen**.
 
 ---
 

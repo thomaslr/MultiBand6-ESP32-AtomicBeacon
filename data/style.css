@@ -112,6 +112,28 @@ body {
   box-shadow: 0 4px 14px var(--accent-glow);
 }
 
+.install-header-btn {
+  cursor: pointer;
+  background: linear-gradient(145deg, #6d28d9 0%, #4c1d95 100%);
+  border-color: rgba(233, 213, 255, 0.7);
+}
+
+.install-header-btn[aria-disabled="true"] {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.install-header-btn[hidden],
+.install-status[hidden] {
+  display: none !important;
+}
+
+.header .install-status {
+  font-size: 12px;
+  color: #c4b5fd;
+  margin-top: 6px;
+}
+
 .header h1 {
   font-size: 26px;
   font-weight: 900;
