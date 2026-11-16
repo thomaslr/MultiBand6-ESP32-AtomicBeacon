@@ -173,6 +173,20 @@ body {
   box-shadow: 0 1px 6px rgba(16, 185, 129, 0.3);
 }
 
+.badge-mdns {
+  background: rgba(14, 165, 233, 0.25);
+  border-color: rgba(125, 211, 252, 0.6);
+  box-shadow: 0 1px 6px rgba(14, 165, 233, 0.3);
+  text-shadow: 0 0 6px rgba(56, 189, 248, 0.55);
+}
+
+.badge-uptime {
+  background: rgba(30, 12, 58, 0.65);
+  border-color: rgba(216, 180, 254, 0.38);
+  color: #e9d5ff;
+  font-variant-numeric: tabular-nums;
+}
+
 .badge-update {
   background: rgba(245, 158, 11, 0.25);
   color: #fef08a;

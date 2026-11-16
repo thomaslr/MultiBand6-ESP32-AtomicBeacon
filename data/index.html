@@ -33,7 +33,9 @@
     <div class="header">
       <div class="header-title-row">
         <h1>📡 TimeStation</h1>
-        <span class="badge" id="versionBadge">v0.1.21</span>
+        <span class="badge badge-mdns" id="hostBadge" title="Device mDNS Address">timestation.local</span>
+        <span class="badge" id="versionBadge">v0.1.22</span>
+        <span class="badge badge-uptime" id="uptimeBadge" title="ESP32 System Uptime">⏱️ --</span>
         <button type="button" id="btnInstallApp" class="github-header-btn install-header-btn" title="Install TimeStation as a standalone app" hidden>
           <span>📲</span>
           <span>Install App</span>
@@ -357,7 +359,7 @@
         <div class="status-grid">
           <div class="stat-item">
             <span class="stat-label">Firmware Version</span>
-            <span class="stat-val" id="otaFirmwareVersion">v0.1.21</span>
+            <span class="stat-val" id="otaFirmwareVersion">v0.1.22</span>
           </div>
           <div class="stat-item">
             <span class="stat-label">Running Flash Slot</span>

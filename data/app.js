@@ -21,11 +21,13 @@ let userOffsetHours = 0;
 let activeStationIdx = 0;
 let serverEpochSec = 0;
 let clientEpochBaseMs = Date.now();
+let deviceUptimeSec = null;
+let uptimeFetchWallMs = 0;
 let transmitRemainSec = 0;
 let transmitRemainBaseMs = Date.now();
 let appConfig = null;
 let appStatus = null;
-let currentFirmwareVersion = '0.1.21';
+let currentFirmwareVersion = '0.1.22';
 let latestReleaseData = null;
 let logAutoRefreshInterval = null;
 let statusPollTimer = null;
@@ -52,6 +54,25 @@ function formatDuration(totalSec) {
   if (hours > 0) return `${hours}h ${mins}m ${secs}s`;
   if (mins > 0) return `${mins}m ${secs}s`;
   return `${secs}s`;
+}
+
+function formatHeaderUptime(totalSec) {
+  const sec = Math.max(0, Math.floor(Number(totalSec) || 0));
+  const days = Math.floor(sec / 86400);
+  const hours = Math.floor((sec % 86400) / 3600);
+  const mins = Math.floor((sec % 3600) / 60);
+  if (days > 0) return `⏱️ ${days}d ${hours}h ${mins}m`;
+  return `⏱️ ${hours}h ${mins}m`;
+}
+
+function updateHeaderUptime() {
+  if (deviceUptimeSec === null) return;
+  const currentSec = deviceUptimeSec + Math.floor((Date.now() - uptimeFetchWallMs) / 1000);
+  const badge = document.getElementById('uptimeBadge');
+  if (badge) {
+    badge.textContent = formatHeaderUptime(currentSec);
+    badge.title = `ESP32 System Uptime: ${formatDuration(currentSec)}`;
+  }
 }
 
 // --- Tab Management ---
@@ -310,12 +331,18 @@ function updateStatusDisplay(data) {
     if (diagRssi) diagRssi.textContent = `${rssi} dBm`;
   }
   if (data.uptime_sec !== undefined) {
+    deviceUptimeSec = data.uptime_sec;
+    uptimeFetchWallMs = Date.now();
+    updateHeaderUptime();
     const diagUptime = document.getElementById('diagUptime');
     if (diagUptime) diagUptime.textContent = formatDuration(data.uptime_sec);
   }
   const hostname = data.hostname;
   if (hostname) {
-    document.getElementById('netMdns').innerText = `${hostname}.local`;
+    const mdns = `${hostname}.local`;
+    document.getElementById('netMdns').innerText = mdns;
+    const hostBadge = document.getElementById('hostBadge');
+    if (hostBadge) hostBadge.textContent = mdns;
   }
   if (data.version) {
     currentFirmwareVersion = data.version;
@@ -327,6 +354,7 @@ function updateStatusDisplay(data) {
 
 // Tick clock every second locally based on synced server epoch
 function tickClock() {
+  updateHeaderUptime();
   if (serverEpochSec === 0) return;
   const elapsedSec = Math.floor((Date.now() - clientEpochBaseMs) / 1000);
   const currentSec = serverEpochSec + elapsedSec;
